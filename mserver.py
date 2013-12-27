@@ -1,5 +1,6 @@
 import socket
 import struct
+import sys
 
 MCAST_GRP = '224.1.1.1'
 MCAST_PORT = 5007
@@ -12,4 +13,7 @@ mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 print "Hello, world!\n"
-print sock.recv(10240)
+sys.stdout.flush()
+while True:
+  print sock.recv(10240)
+  sys.stdout.flush()
