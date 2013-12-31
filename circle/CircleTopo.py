@@ -45,6 +45,7 @@ def simpleTest():
   for i in irange(1, topo.k * topo.h):
     h = net.get('h%i' % i)
     h.cmd( 'ip route add 0.0.0.0/0 dev h%i-eth0' % i )
+    h.cmd( 'python ms.py > /tmp/h%i-output.txt &' % i )
     # result = h.cmd('route -n')
     # print result
   # net.pingAll()
