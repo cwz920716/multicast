@@ -27,9 +27,9 @@ while True:
       group_stat[group] = 0
   if not node_stat.has_key(node):
       node_stat[node] = 0
-  output2f('nodes/%s.txt' % node, line)
   if op == 'post':
     output2f('nodes-post/%s.txt' % node, line)
+    output2f('groups-post/%s.txt' % group, line)
     msg = tuples[3]
     group_stat[group] = group_stat[group] + int(msg)
     node_stat[node] = node_stat[node] + int(msg)
