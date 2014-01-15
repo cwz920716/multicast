@@ -21,16 +21,17 @@ while True:
   # print line
   tuples = line.split()
   node = tuples[0]
-  group = tuples[1]
+  group = tuples[3]
   op = tuples[2]
   if not group_stat.has_key(group):
-      group_stat[group] = 0
+    group_stat[group] = 0
   if not node_stat.has_key(node):
-      node_stat[node] = 0
+    node_stat[node] = 0
   # output2f('nodes/%s.txt' % node, line)
   if op == 'post':
     # output2f('nodes-post/%s.txt' % node, line)
-    msg = tuples[3]
+    # output2f('groups-post/%s.txt' % group, line)
+    msg = tuples[4]
     group_stat[group] = group_stat[group] + int(msg)
     node_stat[node] = node_stat[node] + int(msg)
 
@@ -49,23 +50,23 @@ nslist.sort()
 cdf = []
 sum = 0
 cnt = 0
-gap = 1000
-for e in nslist:
+gap = 10000
+for e in gslist:
   sum = sum + e
   if e >= gap:
-    cdf.append(cnt)
     while gap <= e:
+      # print gap
       cdf.append(cnt)
-      gap = gap + 1000
+      gap = gap + 10000
   cnt = cnt + 1
   # print cnt
 cdf.append(cnt)
-print sum
+# print sum
 
-gap = 1000
+gap = 10000
 for e in cdf:
-  # print '%d\t%d' % (gap, e)
-  gap = gap + 1000
+  print '%d\t%d' % (gap, e)
+  gap = gap + 10000
   pass
 
 fin.close()
