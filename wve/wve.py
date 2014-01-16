@@ -10,7 +10,7 @@ def output2f(fname, line):
   fout.write(line)
   fout.close()
 
-fin = file('/home/mininet/anon-trace.txt', 'r')
+fin = file('/home/mininet/trace/wve/anon-trace.txt', 'r')
 
 group_stat = {}
 node_stat = {}

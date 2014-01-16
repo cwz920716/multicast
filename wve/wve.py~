@@ -24,9 +24,9 @@ while True:
   group = tuples[3]
   op = tuples[2]
   if not group_stat.has_key(group):
-      group_stat[group] = 0
+    group_stat[group] = 0
   if not node_stat.has_key(node):
-      node_stat[node] = 0
+    node_stat[node] = 0
   # output2f('nodes/%s.txt' % node, line)
   if op == 'post':
     # output2f('nodes-post/%s.txt' % node, line)
