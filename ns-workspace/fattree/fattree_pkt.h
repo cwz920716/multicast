@@ -1,3 +1,4 @@
+/* -*-	Mode:C++; c-basic-offset:4; tab-width:4; indent-tabs-mode:t -*- */
 #ifndef __fattree_pkt_h__
 #define __fattree_pkt_h__
 
