@@ -1,7 +1,7 @@
+/* -*-	Mode:C++; c-basic-offset:4; tab-width:4; indent-tabs-mode:t -*- */
 #ifndef __fattree_pkt_h__
 #define __fattree_pkt_h__
 
-/* -*-	Mode:C++; c-basic-offset:4; tab-width:4; indent-tabs-mode:t -*- */
 #include "packet.h"
 
 #define HDR_FATTREE(p)   ((struct hdr_fattree*)hdr_fattree::access(p))
@@ -25,9 +25,11 @@ struct hdr_fattree_data {
 	FattreePktType type_;				// the type of pkt
 	nsaddr_t src_;						// the src addr
 	nsaddr_t dest_;						// the dest addr
+	int content_size_;					// the content size
+	double 
 
 	inline int size() {
-		unsigned int s = 2 * sizeof(int) + 1;
+		unsigned int s = 2 * sizeof(int) + 1 + content_size_;
 		return s;
 	}
 };

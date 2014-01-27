@@ -8,6 +8,7 @@
 
 #include "agent.h"
 #include "packet.h"
+#include "tclcl.h"
 #include "trace.h"
 #include "timer-handler.h"
 #include "mobilenode.h"
@@ -37,7 +38,7 @@ public:
 	unsigned char aggr;
 	unsigned char cpod;			// core or pod
 	inline bool isHost() {
-		return host != 0 && edge != 0 && aggr == 0 && cpod != 0;
+		return host != 0 && edge != 0 && aggr == 0 && cpod != 0 && cpod != 2;
 	}
 	inline bool isEdge() {
 		return host == 0 && edge != 0 && aggr == 0 && cpod != 0;
@@ -116,21 +117,28 @@ public:
 	FattreeAgent();
 	int command(int, const char*const*);
 	void recv(Packet*, Handler*);
+	inline void send_config(nsaddr_t nexthop, int size) { 
+		dst_.addr_ = nexthop; 
+		dst_.port_ = 0;
+		size_ = size; 
+	}
 
 protected:
-	PortClassifier *port_dmux_;				// for passing packets up to agents
 	Trace *logtarget_;						// for trace
-
-	// forward a packet toward the destination
-	void forwardData(Packet*);				// forward packets
 
 private:
 	// the node information	
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
+	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// routing table <dest, next> pair
 
 	// dump
 	void dumpPacket(Packet*);
+
+	// post
+	void post(nsaddr_t, int);
+
+	nsaddr_t getNextHopFor(nsaddr_t);
 
 };
 

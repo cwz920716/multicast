@@ -1,6 +1,10 @@
 #Create a simulator object
 set ns [new Simulator]
 
+#Define different colors for data flows
+$ns color 1 Blue
+$ns color 2 Red
+
 #Open the nam trace file
 set nf [open out.nam w]
 $ns namtrace-all $nf
@@ -16,24 +20,43 @@ proc finish {} {
         exit 0
 }
 
-
-# Insert your own code for topology creation
-# and agent definitions, etc. here
+#Create four nodes
 set n0 [$ns node]
 set n1 [$ns node]
 set n2 [$ns node]
 set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
 
-$ns duplex-link $n0 $n2 1Mb 10ms DropTail
-$ns duplex-link $n1 $n2 1Mb 10ms DropTail
-$ns duplex-link $n3 $n2 1Mb 10ms DropTai
+set f0 [new Agent/Fattree]
+set f1 [new Agent/Fattree]
+set f2 [new Agent/Fattree]
+set f3 [new Agent/Fattree]
+set f4 [new Agent/Fattree]
+set f5 [new Agent/Fattree]
+$ns attach-agent $n0 $f0
+$f0 addr 0
+$ns attach-agent $n1 $f1
+$f1 addr 1
+$ns attach-agent $n2 $f2
+$f2 addr 2
+$ns attach-agent $n3 $f3
+$f3 addr 3
+$ns attach-agent $n4 $f4
+$f4 addr 4
+$ns attach-agent $n5 $f5
+$f5 addr 5
 
+#Create links between the nodes
+$ns duplex-link $n0 $n5 1Mb 10ms DropTail
+$ns duplex-link $n1 $n5 1Kb 10ms DropTail
+$ns duplex-link $n2 $n5 1Mb 10ms DropTail
+$ns duplex-link $n3 $n5 1Kb 10ms DropTail
+$ns duplex-link $n4 $n5 1Mb 10ms DropTail
 
-
-#Call the finish procedure after 5 seconds simulation time
-$ns at 5.0 "finish"
+#Call the finish procedure after 5 seconds of simulation time
+$ns at 0.2 "$f1 post 3 0"
+$ns at 1.0 "finish"
 
 #Run the simulation
 $ns run
-
-
