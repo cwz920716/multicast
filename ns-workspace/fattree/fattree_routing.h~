@@ -38,7 +38,7 @@ public:
 	unsigned char aggr;
 	unsigned char cpod;			// core or pod
 	inline bool isHost() {
-		return host != 0 && edge != 0 && aggr == 0 && cpod != 0 && host < 5;
+		return host != 0 && edge != 0 && aggr == 0 && cpod != 0 && cpod != 2;
 	}
 	inline bool isEdge() {
 		return host == 0 && edge != 0 && aggr == 0 && cpod != 0;
@@ -117,10 +117,9 @@ public:
 	FattreeAgent();
 	int command(int, const char*const*);
 	void recv(Packet*, Handler*);
-	inline void send_config(nsaddr_t nexthop, int size) { 
+	inline void send_config(nsaddr_t nexthop) { 
 		dst_.addr_ = nexthop; 
 		dst_.port_ = 0;
-		size_ = size; 
 	}
 
 protected:
@@ -130,15 +129,15 @@ private:
 	// the node information	
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
-	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// routing table <dest, next> pair
+	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup, not useful for now
 
-	// dump
 	void dumpPacket(Packet*);
 
-	// post
 	void post(nsaddr_t, int);
 
 	nsaddr_t getNextHopFor(nsaddr_t);
+
+	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t);
 
 };
 

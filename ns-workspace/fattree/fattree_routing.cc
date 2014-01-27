@@ -84,16 +84,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		*/
 		fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
 					(Scheduler::instance().clock()) * 1000);
-		
-		send_config(getNextHopFor(hdr->dest_), hdr->content_size_);
-		Packet* p2 = allocpkt();
-		// Copy the Fattree header for the new packet:
-		struct hdr_fattree_data *hdr2 = HDR_FATTREE_DATA(p2);
-		hdr2->src_ = hdr->src_;
-		hdr2->dest_ = hdr->dest_;
-		hdr2->content_size_ = hdr->content_size_;
-		hdr2->send_time_ = hdr2->send_time_;
-		send(p2, 0);
+
+		send2(getNextHopFor(hdr->dest_), hdr->content_size_, hdr->src_, hdr->dest_);
 		Packet::free(p);
 	}
 
@@ -154,14 +146,75 @@ nsaddr_t FattreeAgent::getNextHopFor(nsaddr_t dest) {
 }
 
 void FattreeAgent::post(nsaddr_t dest, int size) {
+	send2(getNextHopFor(dest), size, addr_, dest);
+}
+
+void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t src, nsaddr_t dest) {
 	// Create a new packet
-	send_config(getNextHopFor(dest), size);
+	send_config(nexthop);
 	Packet* p = allocpkt();
 	// Access the Fattree header for the new packet:
 	struct hdr_fattree_data *hdr = HDR_FATTREE_DATA(p);
-	hdr->src_ = addr_;
+	hdr->src_ = src;
 	hdr->dest_ = dest;
 	hdr->content_size_ = size;
-	hdr->send_time_ = Scheduler::instance().clock();
+	
+	struct hdr_cmn* ch = HDR_CMN(p);
+	ch->size() += hdr->content_size_;
 	send(p, 0);
+}
+
+
+Locator Locator::addr2Locator(nsaddr_t addr) {
+	Locator l;
+ 	unsigned char k = FATTREE_K;
+	if (1 <= addr && addr <= k * k *k / 4) {
+		// host addr
+		l.aggr = 0;
+		l.cpod = (addr - 1) / (k * k / 4) + 1;
+		l.edge = (addr - (l.cpod - 1) * (k * k / 4) - 1) / (k / 2) + 1;
+		l.host = (addr - 1) / (k / 2) + 1; 
+	} else if (k * k * k / 4 + 1 <= addr && addr <= k * k * k / 4 + k * k / 2) {
+		// edge addr
+		nsaddr_t offset = k * k * k / 4 + 1;
+		l.aggr = 0;
+		l.host = 0;
+		l.cpod = (addr - offset) / (k / 2) + 1;
+		l.edge = (addr - offset) % (k / 2) + 1;
+	} else if (k * k * k / 4 + k * k / 2 + 1 <= addr && addr <= k * k * k / 4 + k * k) {
+		// aggr addr
+		nsaddr_t offset = k * k * k / 4 + k * k / 2 + 1;
+		l.edge = 0;
+		l.host = 0;
+		l.cpod = (addr - offset) / (k / 2) + 1;
+		l.aggr = (addr - offset) % (k / 2) + 1;
+	} else if (k * k * k / 4 + k * k + 1 <= addr && addr <= k * k * k / 4 + k * k + k * k / 4) {
+		// core addr
+		nsaddr_t offset = k * k * k / 4 + k * k + 1;
+		l.edge = 0;
+		l.host = 0;
+		l.cpod = addr - offset;
+		l.aggr = 0;
+	}
+
+	return l;
+}
+
+nsaddr_t Locator::locator2Addr(Locator l) {
+	nsaddr_t addr = 0;
+ 	unsigned char k = FATTREE_K;
+	if (l.isHost()) {
+		addr = (l.cpod - 1) * (k * k / 4) + (l.edge - 1) * (k / 2) + l.host;
+	} else if (l.isEdge()) {
+		nsaddr_t base = k * k * k / 4;
+		addr = (l.cpod - 1) * (k / 2) + l.edge + base;
+	} else if (l.isAggr()) {
+		nsaddr_t base = k * k * k / 4 + k * k / 2;
+		addr = (l.cpod - 1) * (k / 2) + l.aggr + base;
+	} else if (l.isCore()) {
+		nsaddr_t base = k * k * k / 4 + k * k;
+		addr = l.cpod + base;
+	}
+
+	return addr;
 }

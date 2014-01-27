@@ -48,16 +48,18 @@ $ns attach-agent $n5 $f5
 $f5 addr 5
 
 #Create links between the nodes
-$ns duplex-link $n0 $n5 1Mb 10ms DropTail
+$ns duplex-link $n0 $n5 1Kb 10ms DropTail
 $ns duplex-link $n1 $n5 1Kb 10ms DropTail
-$ns duplex-link $n2 $n5 1Mb 10ms DropTail
+$ns duplex-link $n2 $n5 1Kb 10ms DropTail
 $ns duplex-link $n3 $n5 1Kb 10ms DropTail
-$ns duplex-link $n4 $n5 1Mb 10ms DropTail
+$ns duplex-link $n4 $n5 1Kb 10ms DropTail
 
 #Call the finish procedure after 5 seconds of simulation time
-$ns at 0.2 "$f1 post 3 0"
-$ns at 0.2 "$f1 post 3 0"
-$ns at 1.0 "finish"
+$ns at 0.0 "$f1 post 3 10"
+$ns at 0.0 "$f2 post 3 1000"
+$ns at 0.0 "$f3 post 4 100"
+$ns at 0.0 "$f4 post 1 50"
+$ns at 20.0 "finish"
 
 #Run the simulation
 $ns run

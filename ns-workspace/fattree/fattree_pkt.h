@@ -26,12 +26,6 @@ struct hdr_fattree_data {
 	nsaddr_t src_;						// the src addr
 	nsaddr_t dest_;						// the dest addr
 	int content_size_;					// the content size
-	double send_time_;					// the send time
-
-	inline int size() {
-		unsigned int s = 2 * sizeof(int) + 1 + content_size_;
-		return s;
-	}
 };
 
 union hdr_all_fattree {
