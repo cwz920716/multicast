@@ -16,7 +16,7 @@ proc finish {} {
 	#Close the trace file
         close $nf
 	#Execute nam on the trace file
-        exec nam out.nam &
+        # exec nam out.nam &
         exit 0
 }
 
@@ -55,11 +55,12 @@ $ns duplex-link $n3 $n5 1Kb 10ms DropTail
 $ns duplex-link $n4 $n5 1Kb 10ms DropTail
 
 #Call the finish procedure after 5 seconds of simulation time
-$ns at 0.0 "$f1 post 3 10"
+#$ns at 0.0 "$f1 post 3 10"
 $ns at 0.0 "$f2 post 3 1000"
-$ns at 0.0 "$f3 post 4 100"
-$ns at 0.0 "$f4 post 1 50"
-$ns at 20.0 "finish"
+$ns at 0.0 "$f1 post 3 1000"
+#$ns at 0.0 "$f3 post 4 100"
+#$ns at 0.0 "$f4 post 1 50"
+$ns at 100.0 "finish"
 
 #Run the simulation
 $ns run
