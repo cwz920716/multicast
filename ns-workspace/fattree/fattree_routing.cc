@@ -103,7 +103,6 @@ nsaddr_t FattreeAgent::getNextHopFor(nsaddr_t dest) {
 	unsigned char k = FATTREE_K;
 	nsaddr_t nexthop;
 
-/*
 	if (locator_.isHost()) {
 		Locator edge = locator_;
 		edge.host = 0;
@@ -133,25 +132,20 @@ nsaddr_t FattreeAgent::getNextHopFor(nsaddr_t dest) {
 		aggr.cpod = dest_loc.cpod;
 		aggr.aggr = (locator_.cpod - 1) / (k / 2) + 1;
 		nexthop = Locator::locator2Addr(aggr);
-	} 
-*/
-
-	if (locator_.isHost()) {
-		nexthop = k + 1;
-	} else {
-		nexthop = dest;
 	}
 
 	return nexthop;
 }
 
 void FattreeAgent::post(nsaddr_t dest, int size) {
+	fprintf(stderr, "node %d post %d bytes at %f.\n", addr_, size, 
+				(Scheduler::instance().clock()) * 1000);
 	send2(getNextHopFor(dest), size, addr_, dest);
 }
 
 void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t src, nsaddr_t dest) {
 	// Create a new packet
-	send_config(nexthop);
+	connect2(nexthop);
 	Packet* p = allocpkt();
 	// Access the Fattree header for the new packet:
 	struct hdr_fattree_data *hdr = HDR_FATTREE_DATA(p);
@@ -190,7 +184,7 @@ Locator Locator::addr2Locator(nsaddr_t addr) {
 		l.aggr = (addr - offset) % (k / 2) + 1;
 	} else if (k * k * k / 4 + k * k + 1 <= addr && addr <= k * k * k / 4 + k * k + k * k / 4) {
 		// core addr
-		nsaddr_t offset = k * k * k / 4 + k * k + 1;
+		nsaddr_t offset = k * k * k / 4 + k * k;
 		l.edge = 0;
 		l.host = 0;
 		l.cpod = addr - offset;

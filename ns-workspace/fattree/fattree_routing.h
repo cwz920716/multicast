@@ -24,7 +24,6 @@
  * node k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
-// std::map< nsaddr_t, nsaddr_t > rtable_;	// routing table <dest, next> pair
 #define FATTREE_K 4
 
 
@@ -38,7 +37,7 @@ public:
 	unsigned char aggr;
 	unsigned char cpod;			// core or pod
 	inline bool isHost() {
-		return host != 0 && edge != 0 && aggr == 0 && cpod != 0 && cpod != 2;
+		return host != 0 && edge != 0 && aggr == 0 && cpod != 0;
 	}
 	inline bool isEdge() {
 		return host == 0 && edge != 0 && aggr == 0 && cpod != 0;
@@ -63,7 +62,7 @@ public:
 	FattreeAgent();
 	int command(int, const char*const*);
 	void recv(Packet*, Handler*);
-	inline void send_config(nsaddr_t nexthop) { 
+	inline void connect2(nsaddr_t nexthop) { 
 		dst_.addr_ = nexthop; 
 		dst_.port_ = 0;
 	}

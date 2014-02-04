@@ -1,0 +1,232 @@
+#Create a simulator object
+set ns [new Simulator]
+
+#Define different colors for data flows
+#$ns color 1 Blue
+#$ns color 2 Red
+
+#Open the nam trace file
+set nf [open out.nam w]
+$ns namtrace-all $nf
+
+#Define a 'finish' procedure
+proc finish {} {
+        global ns nf
+        $ns flush-trace
+	#Close the trace file
+        close $nf
+	#Execute nam on the trace file
+        # exec nam out.nam &
+        exit 0
+}
+
+
+set n0 [$ns node]
+# Create [1 - k * k * k / 4] host nodes
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+set n6 [$ns node]
+set n7 [$ns node]
+set n8 [$ns node]
+set n9 [$ns node]
+set n10 [$ns node]
+set n11 [$ns node]
+set n12 [$ns node]
+set n13 [$ns node]
+set n14 [$ns node]
+set n15 [$ns node]
+set n16 [$ns node]
+# Create k * k * k / 4 + [1 - k * k / 2] edge swicthes
+set n17 [$ns node]
+set n18 [$ns node]
+set n19 [$ns node]
+set n20 [$ns node]
+set n21 [$ns node]
+set n22 [$ns node]
+set n23 [$ns node]
+set n24 [$ns node]
+# Create k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr swicthes
+set n25 [$ns node]
+set n26 [$ns node]
+set n27 [$ns node]
+set n28 [$ns node]
+set n29 [$ns node]
+set n30 [$ns node]
+set n31 [$ns node]
+set n32 [$ns node]
+# Create k * k * k / 4 + k * k + [1 - k * k / 4] edge swicthes
+set n33 [$ns node]
+set n34 [$ns node]
+set n35 [$ns node]
+set n36 [$ns node]
+
+# Attach agent to node and call init
+set f1 [new Agent/Fattree]
+$ns attach-agent $n1 $f1
+$f1 addr 1
+set f2 [new Agent/Fattree]
+$ns attach-agent $n2 $f2
+$f2 addr 2
+set f3 [new Agent/Fattree]
+$ns attach-agent $n3 $f3
+$f3 addr 3
+set f4 [new Agent/Fattree]
+$ns attach-agent $n4 $f4
+$f4 addr 4
+set f5 [new Agent/Fattree]
+$ns attach-agent $n5 $f5
+$f5 addr 5
+set f6 [new Agent/Fattree]
+$ns attach-agent $n6 $f6
+$f6 addr 6
+set f7 [new Agent/Fattree]
+$ns attach-agent $n7 $f7
+$f7 addr 7
+set f8 [new Agent/Fattree]
+$ns attach-agent $n8 $f8
+$f8 addr 8
+set f9 [new Agent/Fattree]
+$ns attach-agent $n9 $f9
+$f9 addr 9
+set f10 [new Agent/Fattree]
+$ns attach-agent $n10 $f10
+$f10 addr 10
+set f11 [new Agent/Fattree]
+$ns attach-agent $n11 $f11
+$f11 addr 11
+set f12 [new Agent/Fattree]
+$ns attach-agent $n12 $f12
+$f12 addr 12
+set f13 [new Agent/Fattree]
+$ns attach-agent $n13 $f13
+$f13 addr 13
+set f14 [new Agent/Fattree]
+$ns attach-agent $n14 $f14
+$f14 addr 14
+set f15 [new Agent/Fattree]
+$ns attach-agent $n15 $f15
+$f15 addr 15
+set f16 [new Agent/Fattree]
+$ns attach-agent $n16 $f16
+$f16 addr 16
+set f17 [new Agent/Fattree]
+$ns attach-agent $n17 $f17
+$f17 addr 17
+set f18 [new Agent/Fattree]
+$ns attach-agent $n18 $f18
+$f18 addr 18
+set f19 [new Agent/Fattree]
+$ns attach-agent $n19 $f19
+$f19 addr 19
+set f20 [new Agent/Fattree]
+$ns attach-agent $n20 $f20
+$f20 addr 20
+set f21 [new Agent/Fattree]
+$ns attach-agent $n21 $f21
+$f21 addr 21
+set f22 [new Agent/Fattree]
+$ns attach-agent $n22 $f22
+$f22 addr 22
+set f23 [new Agent/Fattree]
+$ns attach-agent $n23 $f23
+$f23 addr 23
+set f24 [new Agent/Fattree]
+$ns attach-agent $n24 $f24
+$f24 addr 24
+set f25 [new Agent/Fattree]
+$ns attach-agent $n25 $f25
+$f25 addr 25
+set f26 [new Agent/Fattree]
+$ns attach-agent $n26 $f26
+$f26 addr 26
+set f27 [new Agent/Fattree]
+$ns attach-agent $n27 $f27
+$f27 addr 27
+set f28 [new Agent/Fattree]
+$ns attach-agent $n28 $f28
+$f28 addr 28
+set f29 [new Agent/Fattree]
+$ns attach-agent $n29 $f29
+$f29 addr 29
+set f30 [new Agent/Fattree]
+$ns attach-agent $n30 $f30
+$f30 addr 30
+set f31 [new Agent/Fattree]
+$ns attach-agent $n31 $f31
+$f31 addr 31
+set f32 [new Agent/Fattree]
+$ns attach-agent $n32 $f32
+$f32 addr 32
+set f33 [new Agent/Fattree]
+$ns attach-agent $n33 $f33
+$f33 addr 33
+set f34 [new Agent/Fattree]
+$ns attach-agent $n34 $f34
+$f34 addr 34
+set f35 [new Agent/Fattree]
+$ns attach-agent $n35 $f35
+$f35 addr 35
+set f36 [new Agent/Fattree]
+$ns attach-agent $n36 $f36
+$f36 addr 36
+
+#Create links between the edge and host
+$ns duplex-link $n1 $n17 1Gb 0ms DropTail
+$ns duplex-link $n2 $n17 1Gb 0ms DropTail
+$ns duplex-link $n3 $n18 1Gb 0ms DropTail
+$ns duplex-link $n4 $n18 1Gb 0ms DropTail
+$ns duplex-link $n5 $n19 1Gb 0ms DropTail
+$ns duplex-link $n6 $n19 1Gb 0ms DropTail
+$ns duplex-link $n7 $n20 1Gb 0ms DropTail
+$ns duplex-link $n8 $n20 1Gb 0ms DropTail
+$ns duplex-link $n9 $n21 1Gb 0ms DropTail
+$ns duplex-link $n10 $n21 1Gb 0ms DropTail
+$ns duplex-link $n11 $n22 1Gb 0ms DropTail
+$ns duplex-link $n12 $n22 1Gb 0ms DropTail
+$ns duplex-link $n13 $n23 1Gb 0ms DropTail
+$ns duplex-link $n14 $n23 1Gb 0ms DropTail
+$ns duplex-link $n15 $n24 1Gb 0ms DropTail
+$ns duplex-link $n16 $n24 1Gb 0ms DropTail
+#Create links between the aggr and edge
+$ns duplex-link $n17 $n25 1Gb 0ms DropTail
+$ns duplex-link $n17 $n26 1Gb 0ms DropTail
+$ns duplex-link $n18 $n25 1Gb 0ms DropTail
+$ns duplex-link $n18 $n26 1Gb 0ms DropTail
+$ns duplex-link $n19 $n27 1Gb 0ms DropTail
+$ns duplex-link $n19 $n28 1Gb 0ms DropTail
+$ns duplex-link $n20 $n27 1Gb 0ms DropTail
+$ns duplex-link $n20 $n28 1Gb 0ms DropTail
+$ns duplex-link $n21 $n29 1Gb 0ms DropTail
+$ns duplex-link $n21 $n30 1Gb 0ms DropTail
+$ns duplex-link $n22 $n29 1Gb 0ms DropTail
+$ns duplex-link $n22 $n30 1Gb 0ms DropTail
+$ns duplex-link $n23 $n31 1Gb 0ms DropTail
+$ns duplex-link $n23 $n32 1Gb 0ms DropTail
+$ns duplex-link $n24 $n31 1Gb 0ms DropTail
+$ns duplex-link $n24 $n32 1Gb 0ms DropTail
+#Create links between the core and aggr, classic fattree
+$ns duplex-link $n25 $n33 1Gb 0ms DropTail
+$ns duplex-link $n25 $n34 1Gb 0ms DropTail
+$ns duplex-link $n26 $n35 1Gb 0ms DropTail
+$ns duplex-link $n26 $n36 1Gb 0ms DropTail
+$ns duplex-link $n27 $n33 1Gb 0ms DropTail
+$ns duplex-link $n27 $n34 1Gb 0ms DropTail
+$ns duplex-link $n28 $n35 1Gb 0ms DropTail
+$ns duplex-link $n28 $n36 1Gb 0ms DropTail
+$ns duplex-link $n29 $n33 1Gb 0ms DropTail
+$ns duplex-link $n29 $n34 1Gb 0ms DropTail
+$ns duplex-link $n30 $n35 1Gb 0ms DropTail
+$ns duplex-link $n30 $n36 1Gb 0ms DropTail
+$ns duplex-link $n31 $n33 1Gb 0ms DropTail
+$ns duplex-link $n31 $n34 1Gb 0ms DropTail
+$ns duplex-link $n32 $n35 1Gb 0ms DropTail
+$ns duplex-link $n32 $n36 1Gb 0ms DropTail
+
+$ns at 0.0 "$f1 post 15 1000"
+$ns at 4.0 "$f2 post 8 1000"
+$ns at 5.0 "finish"
+
+$ns run
