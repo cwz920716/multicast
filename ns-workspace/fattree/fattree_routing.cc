@@ -5,6 +5,8 @@ using namespace std;
 
 int hdr_fattree::offset_;
 std::map< nsaddr_t, FattreeAgent * > FattreeAgent::agent_pool_;
+GroupController FattreeAgent::centralGC_;
+TrafficController FattreeAgent::centralTC_;
 
 static class FattreeHeaderClass : public PacketHeaderClass{
 public:
@@ -21,6 +23,21 @@ public:
 		return (new FattreeAgent());
 	}
 } class_FattreeAgent;
+
+
+/*************************************************************
+ *
+ *MState Section
+ *
+ *************************************************************/
+const int MState::CAPACITY = 1000;
+
+
+/*************************************************************
+ *
+ *Fattree Section
+ *
+ *************************************************************/
 
 FattreeAgent::FattreeAgent() : Agent(PT_FATTREE), addr_(-1) {
 
@@ -85,7 +102,7 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
 					(Scheduler::instance().clock()) * 1000);
 
-		send2(getNextHopFor(hdr->dest_), hdr->content_size_, hdr->src_, hdr->dest_);
+		send2(Locator::getNextHopFor(locator_, hdr->dest_), hdr->content_size_, hdr->src_, hdr->dest_);
 		Packet::free(p);
 	}
 
@@ -98,49 +115,10 @@ void FattreeAgent::dumpPacket(Packet *p) {
 			 addr_, HDR_CMN(p)->next_hop(), hdr->src_, hdr->dest_, (HDR_CMN(p))->num_forwards());
 }
 
-nsaddr_t FattreeAgent::getNextHopFor(nsaddr_t dest) {
-	Locator dest_loc = Locator::addr2Locator(dest);
-	unsigned char k = FATTREE_K;
-	nsaddr_t nexthop;
-
-	if (locator_.isHost()) {
-		Locator edge = locator_;
-		edge.host = 0;
-		nexthop = Locator::locator2Addr(edge);
-	} else if (locator_.isEdge()) {
-		if (dest_loc.cpod == locator_.cpod && dest_loc.edge == locator_.edge) {
-			nexthop = dest;
-		} else {
-			Locator aggr = locator_;
-			aggr.edge = 0;
-			aggr.aggr = rand() % (k / 2) + 1;
-			nexthop = Locator::locator2Addr(aggr);
-		}
-	} else if (locator_.isAggr()) {
-		if (dest_loc.cpod == locator_.cpod) {
-			Locator edge = dest_loc;
-			edge.host = 0;
-			nexthop = Locator::locator2Addr(edge);
-		} else {
-			Locator core = locator_;
-			core.aggr = 0;
-			core.cpod = (locator_.aggr - 1) * (k / 2) + rand() % (k / 2) + 1;					// for default fat tree
-			nexthop = Locator::locator2Addr(core);
-		}
-	} else if (locator_.isCore()) {
-		Locator aggr = locator_;
-		aggr.cpod = dest_loc.cpod;
-		aggr.aggr = (locator_.cpod - 1) / (k / 2) + 1;
-		nexthop = Locator::locator2Addr(aggr);
-	}
-
-	return nexthop;
-}
-
 void FattreeAgent::post(nsaddr_t dest, int size) {
 	fprintf(stderr, "node %d post %d bytes at %f.\n", addr_, size, 
 				(Scheduler::instance().clock()) * 1000);
-	send2(getNextHopFor(dest), size, addr_, dest);
+	send2(Locator::getNextHopFor(locator_, dest), size, addr_, dest);
 }
 
 void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t src, nsaddr_t dest) {
@@ -158,6 +136,50 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t src, nsaddr_t dest
 	send(p, 0);
 }
 
+/*************************************************************
+ *
+ *GroupController Section
+ *
+ *************************************************************/
+
+const int GroupController::CINDEX = 0;
+
+int GroupController::indexOfControllers(Locator node) {
+	int k = FATTREE_K;
+	nsaddr_t edge = Locator::getEdgeHopOf(node);
+	return edge - k * k * k / 4;
+}
+
+void GroupController::subscribe(Locator node, nsaddr_t group) {
+	if (inGroup(node, group))
+		return;
+
+	std::map< nsaddr_t, std::list<nsaddr_t> > c = gcs_[indexOfControllers(node)];
+	if (c[group].empty()) {					// first node subscribe to this group in its edge
+		gcs_[CINDEX][group].push_back(getEdgeHopOf(node));
+	}
+	c[group].push_back(node);
+	
+}
+
+void GroupController::unsubscribe(Locator node, nsaddr_t group) {
+	if (!inGroup(node, group))
+		return;
+
+	std::map< nsaddr_t, std::list<nsaddr_t> > c = gcs_[indexOfControllers(node)];
+	c[group].remove(node);
+	if (c[group].empty()) {					// last node unsubscribe to this group in its edge
+		gcs_[CINDEX][group].remove(getEdgeHopOf(node));
+	}
+	
+}
+
+
+/*************************************************************
+ *
+ *Locator Section
+ *
+ *************************************************************/
 
 Locator Locator::addr2Locator(nsaddr_t addr) {
 	Locator l;
@@ -211,4 +233,58 @@ nsaddr_t Locator::locator2Addr(Locator l) {
 	}
 
 	return addr;
+}
+
+nsaddr_t Locator::getNextHopFor(Locator cur_loc, nsaddr_t dest) {
+	Locator dest_loc = addr2Locator(dest);
+	unsigned char k = FATTREE_K;
+	nsaddr_t nexthop = -1;
+
+	if (cur_loc.isHost()) {
+		Locator edge = cur_loc;
+		edge.host = 0;
+		nexthop = locator2Addr(edge);
+	} else if (cur_loc.isEdge()) {
+		if (dest_loc.cpod == cur_loc.cpod && dest_loc.edge == cur_loc.edge) {
+			nexthop = dest;
+		} else {
+			Locator aggr = cur_loc;
+			aggr.edge = 0;
+			aggr.aggr = rand() % (k / 2) + 1;
+			nexthop = locator2Addr(aggr);
+		}
+	} else if (cur_loc.isAggr()) {
+		if (dest_loc.cpod == cur_loc.cpod) {
+			Locator edge = dest_loc;
+			edge.host = 0;
+			nexthop = locator2Addr(edge);
+		} else {
+			Locator core = cur_loc;
+			core.aggr = 0;
+			core.cpod = (cur_loc.aggr - 1) * (k / 2) + rand() % (k / 2) + 1;					// for default fat tree
+			nexthop = locator2Addr(core);
+		}
+	} else if (cur_loc.isCore()) {
+		Locator aggr = cur_loc;
+		aggr.cpod = dest_loc.cpod;
+		aggr.aggr = (cur_loc.cpod - 1) / (k / 2) + 1;											// for default fat tree
+		nexthop = locator2Addr(aggr);
+	}
+
+	return nexthop;
+}
+
+nsaddr_t Locator::getEdgeHopOf(Locator cur_loc) {
+	unsigned char k = FATTREE_K;
+	nsaddr_t edgehop = -1;
+
+	if (cur_loc.isHost()) {
+		Locator edge = cur_loc;
+		edge.host = 0;
+		edgehop = locator2Addr(edge);
+	} else {
+		fprintf(stderr, "no supported getEdgeHopOf() on non-host node %d.\n", locator2Addr(cur_loc));
+	}
+
+	return edgehop;
 }

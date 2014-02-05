@@ -22,10 +22,15 @@ struct hdr_fattree {
 };
 
 struct hdr_fattree_data {
-	FattreePktType type_;				// the type of pkt
-	nsaddr_t src_;						// the src addr
-	nsaddr_t dest_;						// the dest addr
-	int content_size_;					// the content size
+	FattreePktType type_;					// the type of pkt
+	nsaddr_t source_;						// the source addr
+	nsaddr_t group_;						// the group addr
+	bool tunnelFg_;							// the tunnel Flag	
+	nsaddr_t tsrc_;							// the tunnel source
+	nsaddr_t tdest_;						// the tunnel destination
+	nsaddr_t lasthop;						// the last hop for this packet
+	nsaddr_t nexthop;						// the next hop for this packet
+	int content_size_;						// the content size
 };
 
 union hdr_all_fattree {
