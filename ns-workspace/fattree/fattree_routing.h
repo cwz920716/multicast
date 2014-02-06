@@ -56,10 +56,16 @@ public:
 		return host == 0 && edge == 0 && aggr == 0 && cpod != 0;
 	}
 
+	inline bool fromBelow(nsaddr_t host) {
+		Locator l = addr2Locator(host);
+		return isEdge() && edge == l.edge && cpod == l.cpod;
+	}
+
 	static Locator addr2Locator(nsaddr_t addr);
 	static nsaddr_t locator2Addr(Locator l);
 	static nsaddr_t getNextHopFor(Locator, nsaddr_t);
 	static nsaddr_t getEdgeHopOf(Locator);
+	static nsaddr_t getAggrHopOf(Locator, nsaddr_t);
 };
 
 /*
@@ -68,11 +74,25 @@ public:
 class MState {
 public:
 	friend class FattreeAgent;
+	friend class hashPIM;
 
-	MState::MState() : states_(), len_(0) {}
-	inline void len() { return len_; }
+	MState() : states_(), len_(0) {}
+	inline int len() { return len_; }
 	inline void clearAll() {  states_.clear(); len_ = 0; }
-	inline void push2(nsaddr_t group, nsaddr_t porta) { states_[group].push_back(porta); len_++; }
+
+	inline void push2(nsaddr_t group, nsaddr_t porta) { 
+		if (states_[group].empty())
+			len_++;
+
+		states_[group].push_back(porta); 
+	}
+
+	inline void remove2(nsaddr_t group, nsaddr_t porta) { 
+		states_[group].remove(porta); 
+		
+		if (states_[group].empty())
+			len_--;
+	}
 	
 	std::map< nsaddr_t, std::list<nsaddr_t> > states_;				/* multicast state for a given group */
 	int len_;
@@ -86,14 +106,26 @@ public:
 class GroupController {
 public:
 	friend class FattreeAgent;
+	friend class hashPIM;
 
 	void subscribe(Locator node, nsaddr_t group);
-	inline void unsubscribe(Locator node, nsaddr_t group);
+	void unsubscribe(Locator node, nsaddr_t group);
+	void post(nsaddr_t, int);
+	
 
 	inline bool inGroup(Locator node, nsaddr_t group) {
+		nsaddr_t node_addr = Locator::locator2Addr(node);
 		std::map< nsaddr_t, std::list<nsaddr_t> > c = gcs_[indexOfControllers(node)];
 		return c.find(group) != c.end() && 
-					std::find(c[group].begin(), c[group].end(), node) != c[group].end();
+					std::find(c[group].begin(), c[group].end(), node_addr) != c[group].end();
+	}
+
+	inline bool isElephant(nsaddr_t group) {
+		return tfcmtx_[group] >= THRESHOLD;
+	}
+
+	inline bool preElephant(nsaddr_t group, int len) {
+		return !isElephant(group) && tfcmtx_[group] + len >= THRESHOLD;
 	}
 
 	/*
@@ -102,31 +134,22 @@ public:
 	 * For others, it's undefined and shouldn't be accessed
 	 */
 	std::map< nsaddr_t, std::list<nsaddr_t> > gcs_[FATTREE_K * FATTREE_K / 2 + 1];
+	std::map< nsaddr_t, unsigned long > tfcmtx_;
 
-	static int indexOfControllers(Locator node);
+	static int indexOfControllers(Locator);
+	static int indexOfControllersForEdge(nsaddr_t);
 	static const int CINDEX;									// Central index in gcs_
-
-};
-
-/*
- * This is the traffic controller. 
- */
-class TrafficController {
-public:
-	friend class FattreeAgent;
-
-	void posted(nsaddr_t group, int msg_len) { tfcmtx_[group] += msg_len; }
-	void clear(nsaddr_t group) { tfcmtx_[group] = 0; }
-	
-	std::map< nsaddr_t, nsaddr_t > tfcmtx_;
+	static const unsigned long THRESHOLD;						// the threshold between small/large group
 
 };
 
 class hashPIM {
 public:
 	static nsaddr_t chash(nsaddr_t group);							/* get the hashed core address for the group */
-	static void buildSharedTree(nsaddr_t group);					
-}
+	static void build(nsaddr_t group);			
+	static void join(Locator node, nsaddr_t group);
+	static void leave(Locator node, nsaddr_t group);		
+};
 
 /*
  * This is the fattree routing agent. 
@@ -144,7 +167,6 @@ public:
 	}
 
 	static GroupController centralGC_;
-	static TrafficController centralTC_;
 
 protected:
 	Trace *logtarget_;						// for trace
@@ -156,10 +178,15 @@ private:
 	MState mstates_;							// multicast state of this node
 	GroupController gc_;					// group controller
 
-	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup, not useful for now
+	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup
 	void dumpPacket(Packet*);
+	void dumpMcastStates();
 	void post(nsaddr_t, int);
 	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t);
+	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t, bool, nsaddr_t, nsaddr_t);
+	void mcast(Packet*);
+	void ucast(Packet*);
+	void m2u(Packet*);
 
 };
 

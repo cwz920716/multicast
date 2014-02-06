@@ -3,6 +3,9 @@
 #define __fattree_routing_h__
 
 #include <map>
+#include <list>
+#include <iostream>
+#include <algorithm>
 
 #include "fattree_pkt.h"
 
@@ -24,7 +27,6 @@
  * node k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
-// std::map< nsaddr_t, nsaddr_t > rtable_;	// routing table <dest, next> pair
 #define FATTREE_K 4
 
 
@@ -37,90 +39,134 @@ public:
 	unsigned char edge;
 	unsigned char aggr;
 	unsigned char cpod;			// core or pod
+
 	inline bool isHost() {
-		return host != 0 && edge != 0 && aggr == 0 && cpod != 0 && cpod != 2;
+		return host != 0 && edge != 0 && aggr == 0 && cpod != 0;
 	}
+
 	inline bool isEdge() {
 		return host == 0 && edge != 0 && aggr == 0 && cpod != 0;
 	}
+
 	inline bool isAggr() {
 		return host == 0 && edge == 0 && aggr != 0 && cpod != 0;
 	}
+
 	inline bool isCore() {
 		return host == 0 && edge == 0 && aggr == 0 && cpod != 0;
 	}
 
+	inline bool fromBelow(nsaddr_t host) {
+		Locator l = addr2Locator(host);
+		return isEdge() && edge == l.edge && cpod == l.cpod;
+	}
+
 	static Locator addr2Locator(nsaddr_t addr);
 	static nsaddr_t locator2Addr(Locator l);
+	static nsaddr_t getNextHopFor(Locator, nsaddr_t);
+	static nsaddr_t getEdgeHopOf(Locator);
+	static nsaddr_t getAggrHopOf(Locator, nsaddr_t);
 };
 
-Locator Locator::addr2Locator(nsaddr_t addr) {
-	Locator l;
- 	unsigned char k = FATTREE_K;
-	if (1 <= addr && addr <= k * k *k / 4) {
-		// host addr
-		l.aggr = 0;
-		l.cpod = (addr - 1) / (k * k / 4) + 1;
-		l.edge = (addr - (l.cpod - 1) * (k * k / 4) - 1) / (k / 2) + 1;
-		l.host = (addr - 1) / (k / 2) + 1; 
-	} else if (k * k * k / 4 + 1 <= addr && addr <= k * k * k / 4 + k * k / 2) {
-		// edge addr
-		nsaddr_t offset = k * k * k / 4 + 1;
-		l.aggr = 0;
-		l.host = 0;
-		l.cpod = (addr - offset) / (k / 2) + 1;
-		l.edge = (addr - offset) % (k / 2) + 1;
-	} else if (k * k * k / 4 + k * k / 2 + 1 <= addr && addr <= k * k * k / 4 + k * k) {
-		// aggr addr
-		nsaddr_t offset = k * k * k / 4 + k * k / 2 + 1;
-		l.edge = 0;
-		l.host = 0;
-		l.cpod = (addr - offset) / (k / 2) + 1;
-		l.aggr = (addr - offset) % (k / 2) + 1;
-	} else if (k * k * k / 4 + k * k + 1 <= addr && addr <= k * k * k / 4 + k * k + k * k / 4) {
-		// core addr
-		nsaddr_t offset = k * k * k / 4 + k * k + 1;
-		l.edge = 0;
-		l.host = 0;
-		l.cpod = addr - offset;
-		l.aggr = 0;
+/*
+ * This is the multicast state. 
+ */
+class MState {
+public:
+	friend class FattreeAgent;
+	friend class hashPIM;
+
+	MState() : states_(), len_(0) {}
+	inline int len() { return len_; }
+	inline void clearAll() {  states_.clear(); len_ = 0; }
+
+	inline void push2(nsaddr_t group, nsaddr_t porta) { 
+		if (states_[group].empty())
+			len_++;
+
+		states_[group].push_back(porta); 
 	}
 
-	return l;
-}
+	inline void remove2(nsaddr_t group, nsaddr_t porta) { 
+		states_[group].remove(porta); 
+		
+		if (states_[group].empty())
+			len_--;
+	}
+	
+	std::map< nsaddr_t, std::list<nsaddr_t> > states_;				/* multicast state for a given group */
+	int len_;
+	static const int CAPACITY;
+};
 
-nsaddr_t Locator::locator2Addr(Locator l) {
-	nsaddr_t addr = 0;
- 	unsigned char k = FATTREE_K;
-	if (l.isHost()) {
-		addr = (l.cpod - 1) * (k * k / 4) + (l.edge - 1) * (k / 2) + l.host;
-	} else if (l.isEdge()) {
-		nsaddr_t base = k * k * k / 4;
-		addr = (l.cpod - 1) * (k / 2) + l.edge + base;
-	} else if (l.isAggr()) {
-		nsaddr_t base = k * k * k / 4 + k * k / 2;
-		addr = (l.cpod - 1) * (k / 2) + l.aggr + base;
-	} else if (l.isCore()) {
-		nsaddr_t base = k * k * k / 4 + k * k;
-		addr = l.cpod + base;
+
+/*
+ * This is the membership controller. 
+ */
+class GroupController {
+public:
+	friend class FattreeAgent;
+	friend class hashPIM;
+
+	void subscribe(Locator node, nsaddr_t group);
+	void unsubscribe(Locator node, nsaddr_t group);
+	void post(nsaddr_t, int);
+	
+
+	inline bool inGroup(Locator node, nsaddr_t group) {
+		nsaddr_t node_addr = Locator::locator2Addr(node);
+		std::map< nsaddr_t, std::list<nsaddr_t> > c = gcs_[indexOfControllers(node)];
+		return c.find(group) != c.end() && 
+					std::find(c[group].begin(), c[group].end(), node) != c[group].end();
 	}
 
-	return addr;
-}
+	inline bool isElephant(nsaddr_t group) {
+		return tfcmtx_[group] >= THRESHOLD;
+	}
 
+	inline bool preElephant(nsaddr_t group, int len) {
+		return !isElephant(group) && tfcmtx_[group] + len >= THRESHOLD;
+	}
+
+	/*
+	 * For edges, the members are host nodes, it's index is addr - k * k * k / 4
+	 * For central, the members are edge nodes, it's index is 0
+	 * For others, it's undefined and shouldn't be accessed
+	 */
+	std::map< nsaddr_t, std::list<nsaddr_t> > gcs_[FATTREE_K * FATTREE_K / 2 + 1];
+	std::map< nsaddr_t, unsigned long > tfcmtx_;
+
+	static int indexOfControllers(Locator);
+	static int indexOfControllersForEdge(nsaddr_t);
+	static const int CINDEX;									// Central index in gcs_
+	static const unsigned long THRESHOLD;						// the threshold between small/large group
+
+};
+
+class hashPIM {
+public:
+	static nsaddr_t chash(nsaddr_t group);							/* get the hashed core address for the group */
+	static void build(nsaddr_t group);			
+	static void join(Locator node, nsaddr_t group);
+	static void leave(Locator node, nsaddr_t group);		
+};
 
 /*
  * This is the fattree routing agent. 
  */
 class FattreeAgent : public Agent {
 public:
+	friend class hashPIM;
+
 	FattreeAgent();
 	int command(int, const char*const*);
 	void recv(Packet*, Handler*);
-	inline void send_config(nsaddr_t nexthop) { 
+	inline void connect2(nsaddr_t nexthop) { 
 		dst_.addr_ = nexthop; 
 		dst_.port_ = 0;
 	}
+
+	static GroupController centralGC_;
 
 protected:
 	Trace *logtarget_;						// for trace
@@ -129,15 +175,18 @@ private:
 	// the node information	
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
-	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup, not useful for now
+	MState mstates_;							// multicast state of this node
+	GroupController gc_;					// group controller
 
+	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup
 	void dumpPacket(Packet*);
-
+	void dumpMcastStates();
 	void post(nsaddr_t, int);
-
-	nsaddr_t getNextHopFor(nsaddr_t);
-
 	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t);
+	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t, bool, nsaddr_t, nsaddr_t);
+	void mcast(Packet*);
+	void ucast(Packet*);
+	void m2u(Packet*);
 
 };
 

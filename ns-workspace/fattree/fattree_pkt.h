@@ -22,14 +22,17 @@ struct hdr_fattree {
 };
 
 struct hdr_fattree_data {
+// App Layer
 	FattreePktType type_;					// the type of pkt
 	nsaddr_t source_;						// the source addr
 	nsaddr_t group_;						// the group addr
+// GRE/Tunnel Layer
 	bool tunnelFg_;							// the tunnel Flag	
 	nsaddr_t tsrc_;							// the tunnel source
 	nsaddr_t tdest_;						// the tunnel destination
-	nsaddr_t lasthop;						// the last hop for this packet
-	nsaddr_t nexthop;						// the next hop for this packet
+// Routing Layer
+	nsaddr_t lasthop_;						// the last hop for this packet
+	nsaddr_t nexthop_;						// the next hop for this packet
 	int content_size_;						// the content size
 };
 
