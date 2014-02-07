@@ -84,6 +84,14 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 			nsaddr_t group = Address::instance().str2addr(argv[2]);
 			centralGC_.unsubscribe(locator_, group);
 			return TCL_OK;
+		} else if (strcmp(argv[1], "dump-group") == 0) {
+			if (!locator_.isEdge()) {
+				fprintf(stderr, "no supported dump-group on non-edge node %d \n", addr_);
+				return TCL_ERROR;
+			}
+			nsaddr_t group = Address::instance().str2addr(argv[2]);
+			centralGC_.dumpGroup(locator_, group);
+			return TCL_OK;
 		} else if (strcmp(argv[1], "log-target") == 0 || strcmp(argv[1], "tracetarget") == 0) {
 			logtarget_ = (Trace*)TclObject::lookup(argv[2]);
 			if (logtarget_ == 0) {
@@ -98,7 +106,8 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 				fprintf(stderr, "no supported post on non-host node %d \n", addr_);
 				return TCL_ERROR;
 			}
-			post( Address::instance().str2addr(argv[2]), Address::instance().str2addr(argv[3]) );
+			centralGC_.post( Address::instance().str2addr(argv[2]), atoi(argv[3]) );
+			post( Address::instance().str2addr(argv[2]), atoi(argv[3]) );
 			return TCL_OK;
 		}
 	}
@@ -114,8 +123,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		// I am a host, print the recv message
 		fprintf(stderr, "node %d received %d bytes at %f.\n", addr_, hdr->content_size_, 
 					(Scheduler::instance().clock()) * 1000);
-		if (centralGC_.inGroup(locator_, hdr->group_))
-			fprintf(stderr, "group msg %d delievered to node %d in fault.\n", addr_, hdr->group_);
+		// if (!centralGC_.inGroup(locator_, hdr->group_))
+		//	fprintf(stderr, "group msg %d delievered to node %d in fault.\n", hdr->group_, addr_);
 		Packet::free(p);
 		return; 
 	} else if (locator_.isEdge()) {
@@ -160,10 +169,15 @@ void FattreeAgent::m2u(Packet *p) {
 	struct hdr_fattree_data *hdr = HDR_FATTREE_DATA(p);
 	nsaddr_t group = hdr->group_;
 
+	// fprintf(stderr, "m2u on %d: ", GroupController::indexOfControllersForEdge(addr_));
 	std::map< nsaddr_t, std::list<nsaddr_t> >& c = centralGC_.gcs_[GroupController::indexOfControllersForEdge(addr_)];
 	std::list<nsaddr_t>& hostlist = c[group];
 	for (std::list<nsaddr_t>::iterator i = hostlist.begin(); i != hostlist.end(); ++i) {
 		nsaddr_t nexthop = *i;
+		// fprintf(stderr, "x%d\n", nexthop);
+		if (nexthop == hdr->lasthop_)
+			continue;
+
 		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_, 
 								true, addr_, nexthop);
 	}
@@ -171,16 +185,18 @@ void FattreeAgent::m2u(Packet *p) {
 	if (!locator_.fromBelow(hdr->lasthop_))
 		return;
 
-	c = centralGC_.gcs_[GroupController::CINDEX];
-	std::list<nsaddr_t>& edgelist = c[group];
+	std::map< nsaddr_t, std::list<nsaddr_t> >& cc = centralGC_.gcs_[GroupController::CINDEX];
+	std::list<nsaddr_t>& edgelist = cc[group];
 	for (std::list<nsaddr_t>::iterator i = edgelist.begin(); i != edgelist.end(); ++i) {
 		nsaddr_t tdest = *i;
 		if (tdest == addr_)
 			continue;
 
+		// fprintf(stderr, "%d\n", Locator::getNextHopFor(locator_, tdest));
 		send2(Locator::getNextHopFor(locator_, tdest), hdr->content_size_, hdr->source_, hdr->group_, 
 								true, addr_, tdest);
 	}
+	// fprintf(stderr, "\n");
 }
 
 void FattreeAgent::ucast(Packet *p) {
@@ -198,6 +214,22 @@ void FattreeAgent::mcast(Packet *p) {
 	nsaddr_t group = hdr->group_;
 
 	std::list<nsaddr_t>& ports = mstates_.states_[group];
+	if (ports.empty()) {
+		// best effort model
+		// transfer to hashPIM core
+		if (locator_.isCore()) {
+			// Already reach core
+			return;
+		}
+
+		nsaddr_t core = hashPIM::chash(group);
+		nsaddr_t nexthop = core;
+		if (locator_.isEdge())
+			nexthop = Locator::getAggrHopOf(locator_, core);
+		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_);
+		return;
+	}
+
 	for (std::list<nsaddr_t>::iterator i = ports.begin(); i != ports.end(); ++i) {
 		nsaddr_t nexthop = *i;
 		if (nexthop != hdr->lasthop_) {
@@ -225,7 +257,7 @@ void FattreeAgent::dumpMcastStates() {
 }
 
 void FattreeAgent::post(nsaddr_t group, int size) {
-	fprintf(stderr, "host %d post %d bytes at %f.\n", addr_, size, 
+	fprintf(stderr, "host %d post %d bytes to group %d at %f.\n", addr_, size, group, 
 				(Scheduler::instance().clock()) * 1000);
 	send2(Locator::getEdgeHopOf(locator_), size, addr_, group);
 }
@@ -261,7 +293,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 0;
+const unsigned long GroupController::THRESHOLD = 1024 * 1;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
@@ -275,11 +307,31 @@ int GroupController::indexOfControllersForEdge(nsaddr_t edge) {
 	return edge - k * k * k / 4;
 }
 
+bool GroupController::inGroup(Locator node, nsaddr_t group) {
+	nsaddr_t node_addr = Locator::locator2Addr(node);
+	std::map< nsaddr_t, std::list<nsaddr_t> >& c = gcs_[indexOfControllers(node)];
+	return c.find(group) != c.end() && 
+				std::find(c[group].begin(), c[group].end(), node_addr) != c[group].end();
+}
+
+void GroupController::dumpGroup(Locator node, nsaddr_t group) {
+	nsaddr_t node_addr = Locator::locator2Addr(node);	
+	std::map< nsaddr_t, std::list<nsaddr_t> >& c = gcs_[indexOfControllersForEdge(node_addr)];
+	std::list<nsaddr_t>& hostlist = c[group];
+
+	fprintf(stderr, "dump -edge %d -group %d [", node_addr, group);
+	for (std::list<nsaddr_t>::iterator i = hostlist.begin(); i != hostlist.end(); ++i) {
+		fprintf(stderr, "%d, ", *i);
+	}
+	fprintf(stderr, "]\n");
+}
+
 void GroupController::subscribe(Locator node, nsaddr_t group) {
+	nsaddr_t node_addr = Locator::locator2Addr(node);	
 	if (inGroup(node, group))
 		return;
 
-	nsaddr_t node_addr = Locator::locator2Addr(node);
+	// fprintf(stderr, "%d sub %d\n", node_addr, group);
 	std::map< nsaddr_t, std::list<nsaddr_t> >& c = gcs_[indexOfControllers(node)];
 	if (c[group].empty()) {					// first node subscribe to this group in its edge
 		gcs_[CINDEX][group].push_back(Locator::getEdgeHopOf(node));
@@ -401,7 +453,7 @@ Locator Locator::addr2Locator(nsaddr_t addr) {
 		l.aggr = 0;
 		l.cpod = (addr - 1) / (k * k / 4) + 1;
 		l.edge = (addr - (l.cpod - 1) * (k * k / 4) - 1) / (k / 2) + 1;
-		l.host = (addr - 1) / (k / 2) + 1; 
+		l.host = (addr - 1) % (k / 2) + 1; 
 	} else if (k * k * k / 4 + 1 <= addr && addr <= k * k * k / 4 + k * k / 2) {
 		// edge addr
 		nsaddr_t offset = k * k * k / 4 + 1;

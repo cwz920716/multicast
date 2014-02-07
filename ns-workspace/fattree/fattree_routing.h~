@@ -111,14 +111,8 @@ public:
 	void subscribe(Locator node, nsaddr_t group);
 	void unsubscribe(Locator node, nsaddr_t group);
 	void post(nsaddr_t, int);
-	
-
-	inline bool inGroup(Locator node, nsaddr_t group) {
-		nsaddr_t node_addr = Locator::locator2Addr(node);
-		std::map< nsaddr_t, std::list<nsaddr_t> > c = gcs_[indexOfControllers(node)];
-		return c.find(group) != c.end() && 
-					std::find(c[group].begin(), c[group].end(), node) != c[group].end();
-	}
+	bool inGroup(Locator node, nsaddr_t group);
+	bool dumpGroup(Locator node, nsaddr_t group);
 
 	inline bool isElephant(nsaddr_t group) {
 		return tfcmtx_[group] >= THRESHOLD;

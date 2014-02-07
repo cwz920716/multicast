@@ -1,5 +1,6 @@
 #Create a simulator object
 set ns [new Simulator]
+set rtProto Static
 
 #Define different colors for data flows
 #$ns color 1 Blue
@@ -18,6 +19,62 @@ proc finish {} {
 	#Execute nam on the trace file
         # exec nam out.nam &
         exit 0
+}
+
+
+# Returns the local link that leads to
+# the next hop node with the passed
+# node address parameter. If no link to
+# the given node exists, the procedure
+# returns -1.
+Node instproc nexthop2link { nexthop } {
+	#$self instvar link_
+	set ns_ [Simulator instance]
+	foreach {index link} [$ns_ array get link_] {
+		set L [split $index :]
+		set src [lindex $L 0]
+		if {$src == [$self id]} {
+			set dst [lindex $L 1]
+			if {$dst == $nexthop} {	
+				# Cost Debug
+				#puts "Src:$src Dst:$dst Link:$link"
+				#puts "[$link info class]"
+				# End Cost Debug
+				return $link
+			}
+		}
+	}
+	return -1
+}
+
+#
+# This procedure is used to add explicitly
+# routes to a node, overriding the routing
+# policy used (e.g. shortest path routing).
+# Tested currently with static ns2 routing.
+# Essentially, it is used to add policy-routing
+# entries in realistic network topologies.
+#
+# Parameters:
+#
+#	node: the ns2 node, to which the route
+#	      entry is added to. This parameter
+#	      is of type Node.
+#	dst: the destination, to which the route
+#	     entry refers to. This parameter
+#	      is of type Node.
+#	via: the next hope node, that the local node
+#	     will use to access the destination node.
+#	     This parameter is of type Node.
+#
+##########################################################
+proc addExplicitRoute {node dst via } {
+	set link2via [$node nexthop2link [$via node-addr]]
+	if {$link2via != -1} {
+		$node add-route [$dst node-addr] [$link2via head]
+	} else {
+		puts "Warning: No link exists between node [$node node-addr] and [$via node-addr]. Explicit route not added."
+	}
 }
 
 
@@ -225,8 +282,17 @@ $ns duplex-link $n31 $n34 1Gb 0ms DropTail
 $ns duplex-link $n32 $n35 1Gb 0ms DropTail
 $ns duplex-link $n32 $n36 1Gb 0ms DropTail
 
-$ns at 0.0 "$f1 post 15 1000"
-$ns at 4.0 "$f2 post 8 1000"
-$ns at 5.0 "finish"
+$ns at 1.0 "$f1 subscribe 1"
+$ns at 2.0 "$f2 subscribe 2"
+$ns at 2.0 "$f3 subscribe 2"
+$ns at 2.0 "$f7 subscribe 1"
+$ns at 2.0 "$f12 subscribe 1"
+$ns at 2.0 "$f16 subscribe 2"
+$ns at 3.0 "$f1 post 1 1000"
+$ns at 3.0 "$f17 dump-group 2"
+$ns at 4.0 "$f2 post 2 1000"
+$ns at 4.0 "$f5 post 2 1000"
+$ns at 5.0 "$f17 dump-group 1"
+$ns at 100.0 "finish"
 
 $ns run
