@@ -217,7 +217,7 @@ void FattreeAgent::mcast(Packet *p) {
 	if (ports.empty()) {
 		// best effort model
 		// transfer to hashPIM core
-		if (locator_.isCore()) {
+		if (locator_.isCore() || !locator_.fromBelow(hdr->lasthop_)) {
 			// Already reach core
 			return;
 		}

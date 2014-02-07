@@ -56,9 +56,16 @@ public:
 		return host == 0 && edge == 0 && aggr == 0 && cpod != 0;
 	}
 
-	inline bool fromBelow(nsaddr_t host) {
-		Locator l = addr2Locator(host);
-		return isEdge() && edge == l.edge && cpod == l.cpod;
+	inline bool fromBelow(nsaddr_t other) {
+		Locator l = addr2Locator(other);
+		if (isEdge())
+			return l.isHost() && edge == l.edge && cpod == l.cpod;
+		else if (isAggr())
+			return l.isEdge() && cpod == l.cpod;
+		else if (isCore())
+			return !l.isCore();
+		else
+			return false;
 	}
 
 	static Locator addr2Locator(nsaddr_t addr);

@@ -56,9 +56,10 @@ public:
 		return host == 0 && edge == 0 && aggr == 0 && cpod != 0;
 	}
 
-	inline bool fromBelow(nsaddr_t host) {
-		Locator l = addr2Locator(host);
-		return isEdge() && edge == l.edge && cpod == l.cpod;
+	inline bool fromBelow(nsaddr_t other) {
+		Locator l = addr2Locator(other);
+		if (isEdge())
+			return other.isHost() && edge == l.edge && cpod == l.cpod;
 	}
 
 	static Locator addr2Locator(nsaddr_t addr);
@@ -112,7 +113,7 @@ public:
 	void unsubscribe(Locator node, nsaddr_t group);
 	void post(nsaddr_t, int);
 	bool inGroup(Locator node, nsaddr_t group);
-	bool dumpGroup(Locator node, nsaddr_t group);
+	void dumpGroup(Locator node, nsaddr_t group);
 
 	inline bool isElephant(nsaddr_t group) {
 		return tfcmtx_[group] >= THRESHOLD;

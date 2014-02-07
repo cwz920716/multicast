@@ -293,7 +293,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 1024 * 1024 * 1024 * 1;
+const unsigned long GroupController::THRESHOLD = 1024 * 1;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
