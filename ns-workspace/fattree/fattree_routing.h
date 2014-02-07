@@ -167,7 +167,7 @@ public:
 		dst_.port_ = 0;
 	}
 
-	static GroupController centralGC_;
+	static GroupController centralGC_;		// central group controller
 
 protected:
 	Trace *logtarget_;						// for trace
@@ -177,7 +177,6 @@ private:
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
 	MState mstates_;							// multicast state of this node
-	GroupController gc_;					// group controller
 
 	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup
 	void dumpPacket(Packet*);

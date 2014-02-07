@@ -59,7 +59,13 @@ public:
 	inline bool fromBelow(nsaddr_t other) {
 		Locator l = addr2Locator(other);
 		if (isEdge())
-			return other.isHost() && edge == l.edge && cpod == l.cpod;
+			return l.isHost() && edge == l.edge && cpod == l.cpod;
+		else if (isAggr())
+			return l.isEdge() && cpod == l.cpod;
+		else if (isCore())
+			return !l.isCore();
+		else
+			return false;
 	}
 
 	static Locator addr2Locator(nsaddr_t addr);
@@ -161,7 +167,7 @@ public:
 		dst_.port_ = 0;
 	}
 
-	static GroupController centralGC_;
+	static GroupController centralGC_;		// central group controller
 
 protected:
 	Trace *logtarget_;						// for trace
@@ -171,7 +177,7 @@ private:
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
 	MState mstates_;							// multicast state of this node
-	GroupController gc_;					// group controller
+	GroupController gc_;					
 
 	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup
 	void dumpPacket(Packet*);
