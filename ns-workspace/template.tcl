@@ -7,15 +7,15 @@ set rtProto Static
 #$ns color 2 Red
 
 #Open the nam trace file
-set nf [open out.nam w]
-$ns namtrace-all $nf
+# set nf [open out.nam w]
+# $ns namtrace-all $nf
 
 #Define a 'finish' procedure
 proc finish {} {
-        global ns nf
-        $ns flush-trace
+        global ns # nf
+        # $ns flush-trace
 	#Close the trace file
-        close $nf
+        # close $nf
 	#Execute nam on the trace file
         # exec nam out.nam &
         exit 0

@@ -62,34 +62,12 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
 #    print "addExplicitRoute $n%d $n%d $n%d" % (core, aggr, aggr)
 
 print
-time = 0.0
-print "$ns at %.1f \"$f1 subscribe 1\"" % (time + 1)
-print "$ns at %.1f \"$f2 subscribe 2\"" % (time + 2)
-print "$ns at %.1f \"$f3 subscribe 2\"" % (time + 2)
-print "$ns at %.1f \"$f7 subscribe 1\"" % (time + 2)
-print "$ns at %.1f \"$f12 subscribe 1\"" % (time + 2)
-print "$ns at %.1f \"$f16 subscribe 2\"" % (time + 2)
-print "$ns at %.1f \"$f17 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f18 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f20 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f22 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f24 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f25 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f26 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f27 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f29 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f32 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f34 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"$f35 dump-mcast\"" % (time + 3)
-print "$ns at %.1f \"finish\"" % (time + 100)
-'''
-for i in range(1, k * k * k / 4 + 1):
-  for j in range(1, k * k * k / 4 + 1):
-    if (not i == j) and time <= 1000:
-      print "$ns at %.1f \"$f%d post %d 1000\"" % (time, i, j)
-      time = time + 1
-print "$ns at %.1f \"finish\"" % time
-'''
+trace = file('trace.tcl', 'r')
+while True:
+  line = trace.readline()
+  if line == '--END\n':
+    break
+  print line,
 
 print 
 print "$ns run"

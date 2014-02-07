@@ -39,7 +39,7 @@ const int MState::CAPACITY = 1000;
  *************************************************************/
 
 FattreeAgent::FattreeAgent() : Agent(PT_FATTREE), addr_(-1) {
-
+	tfcsum_ = 0;
 }
 
 int FattreeAgent::command(int argc, const char*const* argv) {
@@ -60,6 +60,9 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "dump-mcast") == 0) {
 			dumpMcastStates();
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "dump-tfcsum") == 0) {
+			fprintf(stderr, "dump-tfcsum -addr %d %ld \n", addr_, tfcsum_);
 			return TCL_OK;
 		}
 	} else if (argc == 3) {
@@ -92,6 +95,9 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 			nsaddr_t group = Address::instance().str2addr(argv[2]);
 			centralGC_.dumpGroup(locator_, group);
 			return TCL_OK;
+		} else if (strcmp(argv[1], "dump-link-stat") == 0) {
+			fprintf(stderr, "dump-link-stat -from %d -to %d -a %ld \n", addr_, Address::instance().str2addr(argv[2]), tfcmtx_[Address::instance().str2addr(argv[2])]);
+			return TCL_OK;
 		} else if (strcmp(argv[1], "log-target") == 0 || strcmp(argv[1], "tracetarget") == 0) {
 			logtarget_ = (Trace*)TclObject::lookup(argv[2]);
 			if (logtarget_ == 0) {
@@ -121,8 +127,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 	
 	if (locator_.isHost()) {
 		// I am a host, print the recv message
-		fprintf(stderr, "node %d received %d bytes at %f.\n", addr_, hdr->content_size_, 
-					(Scheduler::instance().clock()) * 1000);
+		// fprintf(stderr, "node %d received %d bytes at %f.\n", addr_, hdr->content_size_, 
+		//			(Scheduler::instance().clock()) * 1000);
 		// if (!centralGC_.inGroup(locator_, hdr->group_))
 		//	fprintf(stderr, "group msg %d delievered to node %d in fault.\n", hdr->group_, addr_);
 		Packet::free(p);
@@ -132,8 +138,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		/*
 		  fattree routingsize, addr_, group
 		*/
-		fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
-					(Scheduler::instance().clock()) * 1000);
+		// fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
+		//			(Scheduler::instance().clock()) * 1000);
 
 		nsaddr_t group = hdr->group_;
 		if (centralGC_.isElephant(group)) {
@@ -149,8 +155,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		/*
 		  fattree routingsize, addr_, group
 		*/
-		fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
-					(Scheduler::instance().clock()) * 1000);
+		// fprintf(stderr, "node %d route %d bytes at %f.\n", addr_, hdr->content_size_, 
+		//			(Scheduler::instance().clock()) * 1000);
 
 		nsaddr_t group = hdr->group_;
 		if (centralGC_.isElephant(group)) {
@@ -217,7 +223,7 @@ void FattreeAgent::mcast(Packet *p) {
 	if (ports.empty()) {
 		// best effort model
 		// transfer to hashPIM core
-		if (locator_.isCore() || !locator_.fromBelow(hdr->lasthop_)) {
+		if (locator_.isCore() || !locator_.fromBelow(hdr->lasthop_) || centralGC_.emptyGroup(group)) {
 			// Already reach core
 			return;
 		}
@@ -232,10 +238,20 @@ void FattreeAgent::mcast(Packet *p) {
 
 	for (std::list<nsaddr_t>::iterator i = ports.begin(); i != ports.end(); ++i) {
 		nsaddr_t nexthop = *i;
-		if (nexthop != hdr->lasthop_) {
+		if (nexthop != hdr->lasthop_ && !shortcut_mcast(nexthop, group)) {
 			send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_);
 		}
 	}
+}
+
+bool FattreeAgent::shortcut_mcast(nsaddr_t nexthop, nsaddr_t group) {
+	Locator nl = Locator::addr2Locator(nexthop);
+	if (locator_.isEdge() && nl.isAggr())
+		return centralGC_.singleEdge(group);
+	else if (locator_.isAggr() && nl.isCore())
+		return centralGC_.singlePod(group);
+	else
+		return false;
 }
 
 void FattreeAgent::dumpPacket(Packet *p) {
@@ -245,7 +261,7 @@ void FattreeAgent::dumpPacket(Packet *p) {
 }
 
 void FattreeAgent::dumpMcastStates() {
-	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());
+	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());/*
 	for (std::map< nsaddr_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
 			i != mstates_.states_.end(); ++i) {
 		fprintf(stderr, "entry -group %d [", (*i).first);
@@ -253,12 +269,12 @@ void FattreeAgent::dumpMcastStates() {
 		for (std::list<nsaddr_t>::iterator j = ports.begin(); j != ports.end(); ++j)
 			fprintf(stderr, "%d, ", *j);
 		fprintf(stderr, "]\n");
-	}
+	}*/
 }
 
 void FattreeAgent::post(nsaddr_t group, int size) {
-	fprintf(stderr, "host %d post %d bytes to group %d at %f.\n", addr_, size, group, 
-				(Scheduler::instance().clock()) * 1000);
+	// fprintf(stderr, "host %d post %d bytes to group %d at %f.\n", addr_, size, group, 
+	//			(Scheduler::instance().clock()) * 1000);
 	send2(Locator::getEdgeHopOf(locator_), size, addr_, group);
 }
 
@@ -283,6 +299,8 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
 	
 	struct hdr_cmn* ch = HDR_CMN(p);
 	ch->size() += hdr->content_size_;
+	tfcmtx_[nexthop] += size;
+	tfcsum_ += size;
 	send(p, 0);
 }
 
@@ -293,7 +311,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 1024 * 1;
+const unsigned long GroupController::THRESHOLD = 10 * 1024;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
@@ -312,6 +330,19 @@ bool GroupController::inGroup(Locator node, nsaddr_t group) {
 	std::map< nsaddr_t, std::list<nsaddr_t> >& c = gcs_[indexOfControllers(node)];
 	return c.find(group) != c.end() && 
 				std::find(c[group].begin(), c[group].end(), node_addr) != c[group].end();
+}
+
+bool GroupController::singlePod(nsaddr_t group) {
+	std::list<nsaddr_t>& edgelist = gcs_[CINDEX][group];
+	unsigned char cpod = 0;
+	for (std::list<nsaddr_t>::iterator i = edgelist.begin(); i != edgelist.end(); ++i) {
+		Locator l = Locator::addr2Locator(*i);
+		if (cpod == 0)
+			cpod = l.cpod;
+		if (cpod != l.cpod)
+			return false;
+	}
+	return true;
 }
 
 void GroupController::dumpGroup(Locator node, nsaddr_t group) {

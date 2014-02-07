@@ -27,7 +27,7 @@
  * node k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
-#define FATTREE_K 4
+#define FATTREE_K 8
 
 
 /*
@@ -120,6 +120,15 @@ public:
 	void post(nsaddr_t, int);
 	bool inGroup(Locator node, nsaddr_t group);
 	void dumpGroup(Locator node, nsaddr_t group);
+	bool singlePod(nsaddr_t group);
+
+	inline bool emptyGroup(nsaddr_t group) {
+		return gcs_[CINDEX][group].size() == 1;
+	}
+
+	inline bool singleEdge(nsaddr_t group) {
+		return gcs_[CINDEX][group].size() == 1;
+	}
 
 	inline bool isElephant(nsaddr_t group) {
 		return tfcmtx_[group] >= THRESHOLD;
@@ -177,7 +186,8 @@ private:
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
 	MState mstates_;							// multicast state of this node
-	GroupController gc_;					
+	std::map< nsaddr_t, long> tfcmtx_;
+	long tfcsum_;
 
 	static std::map< nsaddr_t, FattreeAgent * > agent_pool_;	// agent pool for lookup
 	void dumpPacket(Packet*);
@@ -188,6 +198,7 @@ private:
 	void mcast(Packet*);
 	void ucast(Packet*);
 	void m2u(Packet*);
+	bool shortcut_mcast(nsaddr_t nexthop, nsaddr_t group);
 
 };
 
