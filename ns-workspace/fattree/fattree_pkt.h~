@@ -31,8 +31,8 @@ struct hdr_fattree_data {
 	nsaddr_t tsrc_;							// the tunnel source
 	nsaddr_t tdest_;						// the tunnel destination
 // Routing Layer
-	nsaddr_t lasthop;						// the last hop for this packet
-	nsaddr_t nexthop;						// the next hop for this packet
+	nsaddr_t lasthop_;						// the last hop for this packet
+	nsaddr_t nexthop_;						// the next hop for this packet
 	int content_size_;						// the content size
 };
 

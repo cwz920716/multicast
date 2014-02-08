@@ -261,7 +261,7 @@ void FattreeAgent::dumpPacket(Packet *p) {
 }
 
 void FattreeAgent::dumpMcastStates() {
-	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());/*
+	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());
 	for (std::map< nsaddr_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
 			i != mstates_.states_.end(); ++i) {
 		fprintf(stderr, "entry -group %d [", (*i).first);
@@ -269,7 +269,7 @@ void FattreeAgent::dumpMcastStates() {
 		for (std::list<nsaddr_t>::iterator j = ports.begin(); j != ports.end(); ++j)
 			fprintf(stderr, "%d, ", *j);
 		fprintf(stderr, "]\n");
-	}*/
+	}
 }
 
 void FattreeAgent::post(nsaddr_t group, int size) {
@@ -301,6 +301,12 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
 	ch->size() += hdr->content_size_;
 	tfcmtx_[nexthop] += size;
 	tfcsum_ += size;
+
+	if (tunnelFg) {
+		ch->size() += IPTUNNEL_OVERHEAD;
+		tfcmtx_[nexthop] += IPTUNNEL_OVERHEAD;
+		tfcsum_ += IPTUNNEL_OVERHEAD;
+	}
 	send(p, 0);
 }
 
@@ -311,7 +317,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 1024 * 1024;
+const unsigned long GroupController::THRESHOLD = 10 * 1024;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
