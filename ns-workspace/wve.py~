@@ -11,7 +11,7 @@ def output2f(fname, line):
   fout.close()
 
 largest = -1
-fin = file('/home/cwz/trace/wve/anon-trace.txt', 'r')
+fin = file('/home/cwz/trace/wve/anon-trace3.txt', 'r')
 while True:
   line = fin.readline()
   if len(line) == 0:
@@ -34,10 +34,11 @@ while True:
 
 k = 8
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
-  print '$ns at %f \"$f%d dump-mcast\"' % (largest + 5000, i)
+  print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
 
-# for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
-#  print '$ns at %f \"$f%d dump-tfcsum\"' % (largest + 5000, i)
+
+for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
+  print '$ns at %f \"$f%d dump-tfcsum\"' % (largest + 1000, i)
 
 '''
 print
@@ -66,6 +67,6 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
     print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1000, core, aggr)
 '''
 
-print '$ns at %f \"finish\"' % (largest + 5001)
+print '$ns at %f \"finish\"' % (largest + 1001)
 print '--END\n'
 fin.close()

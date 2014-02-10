@@ -1,0 +1,160 @@
+node -addr 129 -len(mcast) 24 
+node -addr 130 -len(mcast) 26 
+node -addr 131 -len(mcast) 24 
+node -addr 132 -len(mcast) 23 
+node -addr 133 -len(mcast) 23 
+node -addr 134 -len(mcast) 20 
+node -addr 135 -len(mcast) 23 
+node -addr 136 -len(mcast) 23 
+node -addr 137 -len(mcast) 24 
+node -addr 138 -len(mcast) 19 
+node -addr 139 -len(mcast) 21 
+node -addr 140 -len(mcast) 25 
+node -addr 141 -len(mcast) 18 
+node -addr 142 -len(mcast) 22 
+node -addr 143 -len(mcast) 21 
+node -addr 144 -len(mcast) 16 
+node -addr 145 -len(mcast) 12 
+node -addr 146 -len(mcast) 21 
+node -addr 147 -len(mcast) 22 
+node -addr 148 -len(mcast) 30 
+node -addr 149 -len(mcast) 18 
+node -addr 150 -len(mcast) 30 
+node -addr 151 -len(mcast) 30 
+node -addr 152 -len(mcast) 29 
+node -addr 153 -len(mcast) 15 
+node -addr 154 -len(mcast) 32 
+node -addr 155 -len(mcast) 18 
+node -addr 156 -len(mcast) 21 
+node -addr 157 -len(mcast) 29 
+node -addr 158 -len(mcast) 34 
+node -addr 159 -len(mcast) 22 
+node -addr 160 -len(mcast) 11 
+node -addr 161 -len(mcast) 11 
+node -addr 162 -len(mcast) 18 
+node -addr 163 -len(mcast) 27 
+node -addr 164 -len(mcast) 12 
+node -addr 165 -len(mcast) 14 
+node -addr 166 -len(mcast) 21 
+node -addr 167 -len(mcast) 20 
+node -addr 168 -len(mcast) 9 
+node -addr 169 -len(mcast) 14 
+node -addr 170 -len(mcast) 22 
+node -addr 171 -len(mcast) 22 
+node -addr 172 -len(mcast) 12 
+node -addr 173 -len(mcast) 12 
+node -addr 174 -len(mcast) 17 
+node -addr 175 -len(mcast) 16 
+node -addr 176 -len(mcast) 13 
+node -addr 177 -len(mcast) 15 
+node -addr 178 -len(mcast) 16 
+node -addr 179 -len(mcast) 21 
+node -addr 180 -len(mcast) 14 
+node -addr 181 -len(mcast) 17 
+node -addr 182 -len(mcast) 22 
+node -addr 183 -len(mcast) 21 
+node -addr 184 -len(mcast) 14 
+node -addr 185 -len(mcast) 11 
+node -addr 186 -len(mcast) 20 
+node -addr 187 -len(mcast) 15 
+node -addr 188 -len(mcast) 9 
+node -addr 189 -len(mcast) 14 
+node -addr 190 -len(mcast) 18 
+node -addr 191 -len(mcast) 26 
+node -addr 192 -len(mcast) 14 
+node -addr 193 -len(mcast) 5 
+node -addr 194 -len(mcast) 4 
+node -addr 195 -len(mcast) 7 
+node -addr 196 -len(mcast) 7 
+node -addr 197 -len(mcast) 10 
+node -addr 198 -len(mcast) 8 
+node -addr 199 -len(mcast) 9 
+node -addr 200 -len(mcast) 8 
+node -addr 201 -len(mcast) 7 
+node -addr 202 -len(mcast) 11 
+node -addr 203 -len(mcast) 12 
+node -addr 204 -len(mcast) 8 
+node -addr 205 -len(mcast) 2 
+node -addr 206 -len(mcast) 9 
+node -addr 207 -len(mcast) 6 
+node -addr 208 -len(mcast) 5 
+dump-tfcsum -addr 129 13871570 
+dump-tfcsum -addr 130 16027876 
+dump-tfcsum -addr 131 17714609 
+dump-tfcsum -addr 132 11312661 
+dump-tfcsum -addr 133 17464652 
+dump-tfcsum -addr 134 14487761 
+dump-tfcsum -addr 135 14650925 
+dump-tfcsum -addr 136 12449584 
+dump-tfcsum -addr 137 17936243 
+dump-tfcsum -addr 138 11691560 
+dump-tfcsum -addr 139 13396583 
+dump-tfcsum -addr 140 15095513 
+dump-tfcsum -addr 141 12527500 
+dump-tfcsum -addr 142 10911071 
+dump-tfcsum -addr 143 13431435 
+dump-tfcsum -addr 144 14026101 
+dump-tfcsum -addr 145 11610876 
+dump-tfcsum -addr 146 13793866 
+dump-tfcsum -addr 147 18311493 
+dump-tfcsum -addr 148 19826273 
+dump-tfcsum -addr 149 12623559 
+dump-tfcsum -addr 150 20319019 
+dump-tfcsum -addr 151 15207132 
+dump-tfcsum -addr 152 13781350 
+dump-tfcsum -addr 153 8333172 
+dump-tfcsum -addr 154 21670545 
+dump-tfcsum -addr 155 10387176 
+dump-tfcsum -addr 156 9618427 
+dump-tfcsum -addr 157 18424101 
+dump-tfcsum -addr 158 18556334 
+dump-tfcsum -addr 159 11301528 
+dump-tfcsum -addr 160 7706389 
+dump-tfcsum -addr 161 10718901 
+dump-tfcsum -addr 162 11364770 
+dump-tfcsum -addr 163 14405978 
+dump-tfcsum -addr 164 12859562 
+dump-tfcsum -addr 165 16186986 
+dump-tfcsum -addr 166 12109347 
+dump-tfcsum -addr 167 13270498 
+dump-tfcsum -addr 168 10882150 
+dump-tfcsum -addr 169 14826902 
+dump-tfcsum -addr 170 11954199 
+dump-tfcsum -addr 171 13908915 
+dump-tfcsum -addr 172 11388272 
+dump-tfcsum -addr 173 12447096 
+dump-tfcsum -addr 174 9851957 
+dump-tfcsum -addr 175 9358203 
+dump-tfcsum -addr 176 10699335 
+dump-tfcsum -addr 177 15762425 
+dump-tfcsum -addr 178 12897178 
+dump-tfcsum -addr 179 11062807 
+dump-tfcsum -addr 180 11219937 
+dump-tfcsum -addr 181 14397246 
+dump-tfcsum -addr 182 13679612 
+dump-tfcsum -addr 183 14373541 
+dump-tfcsum -addr 184 12192978 
+dump-tfcsum -addr 185 11767119 
+dump-tfcsum -addr 186 11799733 
+dump-tfcsum -addr 187 11905534 
+dump-tfcsum -addr 188 8333943 
+dump-tfcsum -addr 189 14251961 
+dump-tfcsum -addr 190 11661527 
+dump-tfcsum -addr 191 13809093 
+dump-tfcsum -addr 192 11097722 
+dump-tfcsum -addr 193 10166354 
+dump-tfcsum -addr 194 10128962 
+dump-tfcsum -addr 195 14261045 
+dump-tfcsum -addr 196 18321930 
+dump-tfcsum -addr 197 10395743 
+dump-tfcsum -addr 198 12633372 
+dump-tfcsum -addr 199 10471093 
+dump-tfcsum -addr 200 15645035 
+dump-tfcsum -addr 201 11691853 
+dump-tfcsum -addr 202 12342149 
+dump-tfcsum -addr 203 14798724 
+dump-tfcsum -addr 204 18473704 
+dump-tfcsum -addr 205 6800671 
+dump-tfcsum -addr 206 13437013 
+dump-tfcsum -addr 207 11173475 
+dump-tfcsum -addr 208 11912362 

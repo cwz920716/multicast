@@ -262,6 +262,7 @@ void FattreeAgent::dumpPacket(Packet *p) {
 
 void FattreeAgent::dumpMcastStates() {
 	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());
+/*
 	for (std::map< nsaddr_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
 			i != mstates_.states_.end(); ++i) {
 		fprintf(stderr, "entry -group %d [", (*i).first);
@@ -270,6 +271,7 @@ void FattreeAgent::dumpMcastStates() {
 			fprintf(stderr, "%d, ", *j);
 		fprintf(stderr, "]\n");
 	}
+*/
 }
 
 void FattreeAgent::post(nsaddr_t group, int size) {
@@ -317,7 +319,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 1024 * 1024;
+const unsigned long GroupController::THRESHOLD = 100 * 1024;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
@@ -397,8 +399,10 @@ void GroupController::unsubscribe(Locator node, nsaddr_t group) {
 }
 
 void GroupController::post(nsaddr_t group, int len) {
-	if (preElephant(group, len))
+	if (preElephant(group, len)) {
+		// fprintf(stderr, "%d %ld", group, tfcmtx_[group] + len);
 		hashPIM::build(group);
+	}
 	tfcmtx_[group] += len;
 }
 
