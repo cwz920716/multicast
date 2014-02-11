@@ -27,7 +27,7 @@
  * node k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
-#define FATTREE_K 8
+#define FATTREE_K 16
 
 
 /*
@@ -123,7 +123,7 @@ public:
 	bool singlePod(nsaddr_t group);
 
 	inline bool emptyGroup(nsaddr_t group) {
-		return gcs_[CINDEX][group].size() == 1;
+		return gcs_[CINDEX][group].empty();
 	}
 
 	inline bool singleEdge(nsaddr_t group) {
