@@ -52,9 +52,9 @@ def nextchunk(left, total):
   else:
     return c
 
-k = 8
+k = 16
 H = k * k * k / 4
-N = 8 * 1000
+N = 16 * 1000
 P = 6
 smember = []
 while len(smember) < N:
@@ -93,15 +93,15 @@ for g in range(1, N + 1):
   m = smember[g - 1]
   t = stfc[g - 1]
   # randomly placed VM
-  # hosts = np.random.randint(H - 1, size = m) + 1
+  hosts = np.random.randint(H - 1, size = m) + 1
   # nearby placed VM
-  host_0 = random.randint(1, H - m + 1)
+  # host_0 = random.randint(1, H - m + 1)
   total = t
-  for h in range(host_0, host_0 + m): # hosts : range(host_0, host_0 + m)
+  for h in hosts: # hosts : range(host_0, host_0 + m)
     print '%d 0 subscribe %d' % (h, g)
     if (t > 0):
       size_h = random.randint(0, t)
-      if h == host_0 + m : # hosts[m - 1] : host_0 + m
+      if h == hosts[m - 1] : # hosts[m - 1] : host_0 + m
         size_h = t
       t = t - size_h
       total_h = size_h

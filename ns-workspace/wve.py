@@ -32,7 +32,7 @@ while True:
   elif op == 'unsubscribe':
     print '$ns at %f \"$f%s unsubscribe %s\"' % (time, node, group)
 
-k = 8
+k = 16
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
 
