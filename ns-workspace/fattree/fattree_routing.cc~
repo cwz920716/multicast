@@ -96,7 +96,7 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 			centralGC_.dumpGroup(locator_, group);
 			return TCL_OK;
 		} else if (strcmp(argv[1], "dump-link-stat") == 0) {
-			fprintf(stderr, "dump-link-stat -from %d -to %d -a %ld \n", addr_, Address::instance().str2addr(argv[2]), tfcmtx_[Address::instance().str2addr(argv[2])]);
+			fprintf(stderr, "dump-link-stat -from %d -to %d -a %ld -r %lf \n", addr_, Address::instance().str2addr(argv[2]), tfcmtx_[Address::instance().str2addr(argv[2])], tfcmtx_[Address::instance().str2addr(argv[2])] / (Scheduler::instance().clock()));
 			return TCL_OK;
 		} else if (strcmp(argv[1], "log-target") == 0 || strcmp(argv[1], "tracetarget") == 0) {
 			logtarget_ = (Trace*)TclObject::lookup(argv[2]);
