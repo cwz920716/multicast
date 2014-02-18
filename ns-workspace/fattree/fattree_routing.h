@@ -27,7 +27,7 @@
  * node k * k * k / 4 + k * k / 2 + [1 - k * k / 2] aggr
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
-#define FATTREE_K 16
+#define FATTREE_K 8
 
 
 /*
@@ -118,6 +118,7 @@ public:
 	void subscribe(Locator node, nsaddr_t group);
 	void unsubscribe(Locator node, nsaddr_t group);
 	void post(nsaddr_t, int);
+	void receive(nsaddr_t);
 	bool inGroup(Locator node, nsaddr_t group);
 	void dumpGroup(Locator node, nsaddr_t group);
 	bool singlePod(nsaddr_t group);
@@ -138,6 +139,17 @@ public:
 		return !isElephant(group) && tfcmtx_[group] + len >= THRESHOLD;
 	}
 
+	inline double fair(nsaddr_t group) {
+		double live = finish_[group] - start_[group];
+		double send = stop_[group] - start_[group];
+		if (live == 0 || finish_[group] == 0)
+			return 0;
+		if (send == 0)
+			return 1;
+		else
+			return live / send;
+	}
+
 	/*
 	 * For edges, the members are host nodes, it's index is addr - k * k * k / 4
 	 * For central, the members are edge nodes, it's index is 0
@@ -145,6 +157,10 @@ public:
 	 */
 	std::map< nsaddr_t, std::list<nsaddr_t> > gcs_[FATTREE_K * FATTREE_K / 2 + 1];
 	std::map< nsaddr_t, unsigned long > tfcmtx_;
+	std::map< nsaddr_t, double > start_;
+	std::map< nsaddr_t, double > stop_;
+	std::map< nsaddr_t, double > finish_;
+	std::map< nsaddr_t, bool > init_;
 
 	static int indexOfControllers(Locator);
 	static int indexOfControllersForEdge(nsaddr_t);

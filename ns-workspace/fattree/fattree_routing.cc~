@@ -95,6 +95,11 @@ int FattreeAgent::command(int argc, const char*const* argv) {
 			nsaddr_t group = Address::instance().str2addr(argv[2]);
 			centralGC_.dumpGroup(locator_, group);
 			return TCL_OK;
+		} else if (strcmp(argv[1], "dump-fair") == 0) {
+			nsaddr_t group = Address::instance().str2addr(argv[2]);
+			double fair = centralGC_.fair(group);
+			fprintf(stderr, "dump-fair -g %d -f %lf\n", group, fair);
+			return TCL_OK;
 		} else if (strcmp(argv[1], "dump-link-stat") == 0) {
 			fprintf(stderr, "dump-link-stat -from %d -to %d -a %ld -r %lf \n", addr_, Address::instance().str2addr(argv[2]), tfcmtx_[Address::instance().str2addr(argv[2])], tfcmtx_[Address::instance().str2addr(argv[2])] / (Scheduler::instance().clock()));
 			return TCL_OK;
@@ -131,6 +136,8 @@ void FattreeAgent::recv(Packet* p, Handler* h) {
 		//			(Scheduler::instance().clock()) * 1000);
 		// if (!centralGC_.inGroup(locator_, hdr->group_))
 		//	fprintf(stderr, "group msg %d delievered to node %d in fault.\n", hdr->group_, addr_);
+		nsaddr_t group = hdr->group_;
+		centralGC_.receive(group);
 		Packet::free(p);
 		return; 
 	} else if (locator_.isEdge()) {
@@ -404,6 +411,27 @@ void GroupController::post(nsaddr_t group, int len) {
 		hashPIM::build(group);
 	}
 	tfcmtx_[group] += len;
+
+	double now = Scheduler::instance().clock();
+	if (!init_[group]) {
+		stop_[group] = start_[group] = now;
+		init_[group] = true;
+		return;
+	}
+
+	if (now < start_[group])
+		start_[group] = now;
+
+	if (now > stop_[group])
+		stop_[group] = now;
+		
+}
+
+void GroupController::receive(nsaddr_t group) {
+	double now = Scheduler::instance().clock();
+
+	if (finish_[group] == 0 || now > finish_[group])
+		finish_[group] = now;
 }
 
 /*************************************************************

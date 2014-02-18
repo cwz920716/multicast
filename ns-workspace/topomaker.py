@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
 template = file('template.tcl', 'r')
-k = 16
+k = 8
 
 while True:
   line = template.readline()
