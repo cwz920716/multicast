@@ -52,9 +52,9 @@ def nextchunk(left, total):
   else:
     return c
 
-k = 16
+k = 8
 H = k * k * k / 4
-N = 16 * 1000
+N = 8 * 1000
 P = 6
 smember = []
 while len(smember) < N:
@@ -85,29 +85,54 @@ stfc = np.array(stfc)
 # print len(stfc[stfc > 10 ** 5])
 
 timestamp = {}
+groupbase = {}
 MS = 1000 * 1000
 for h in range(1, H + 1):
-  timestamp[h] = int(random.random() * MS)
+  timestamp[h] = int(random.random() * MS * 2)
 
+for g in range(1, N + 1):
+  groupbase[g] = int(random.random() * MS)
+
+largest = 0;
+p = 0.25
 for g in range(1, N + 1):
   m = smember[g - 1]
   t = stfc[g - 1]
   # randomly placed VM
-  hosts = np.random.randint(H - 1, size = m) + 1
+  # hosts = np.random.randint(H - 1, size = m) + 1
   # nearby placed VM
-  # host_0 = random.randint(1, H - m + 1)
+  host_0 = random.randint(1, H - m + 1)
+  nhosts = []
   total = t
-  for h in hosts: # hosts : range(host_0, host_0 + m)
-    print '%d 0 subscribe %d' % (h, g)
+  for h in range(host_0, host_0 + m): # hosts : range(host_0, host_0 + m)
+    nhosts.append(h)
+    print '%d %d subscribe %d' % (h, groupbase[g], g)
     if (t > 0):
       size_h = random.randint(0, t)
-      if h == hosts[m - 1] : # hosts[m - 1] : host_0 + m
+      if h == host_0 + m - 1 : # hosts[m - 1] : host_0 + m - 1
         size_h = t
       t = t - size_h
       total_h = size_h
       while size_h > 0:
         cs = nextchunk(size_h, total)
         x = x + cs
+        if (timestamp[h] < groupbase[g]):
+          timestamp[h] = groupbase[g]
         timestamp[h] = timestamp[h] + chunk_gap(cs)
         print '%d %d post %d %d' % (h, timestamp[h], g, cs)
+        if (timestamp[h] > largest):
+          largest = timestamp[h]
         size_h = size_h - cs
+  k = m
+  for i in range(0, k):
+    time = int(random.random() * (largest - groupbase[g])) + groupbase[g]
+    if random.random() > p and len(nhosts) > 0:
+      event = nhosts[random.randint(0, len(nhosts) - 1)]
+      print '%d %d unsubscribe %d' % (event, time, g)
+      nhosts = [ i for i in nhosts if i != event]
+    else:
+      event = random.randint(1, H)
+      while event in nhosts:
+        event = random.randint(1, H)
+      print '%d %d subscribe %d' % (event, time, g)
+      nhosts.append(event)

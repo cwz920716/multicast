@@ -33,9 +33,12 @@ while True:
     print '$ns at %f \"$f%s unsubscribe %s\"' % (time, node, group)
 
 k = 8
-'''
+
+
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
+
+'''
 
 
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
@@ -67,12 +70,13 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
   for core in range(core_r1, core_r2 + 1):
     print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, aggr, core)
     print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, core, aggr)
-'''
+
 
 ngroup = 2000
 print
 for g in range(1, ngroup + 1):
   print '$ns at %f \"$f%s dump-fair %s\"' % (largest + 1, 1, g)
+'''
 
 print '$ns at %f \"finish\"' % (largest + 1001)
 print '--END\n'

@@ -83,11 +83,13 @@ public:
 	friend class FattreeAgent;
 	friend class hashPIM;
 
-	MState() : states_(), len_(0) {}
+	MState() : states_(), len_(0), joinUpdates_(0), leaveUpdates_(0) {}
 	inline int len() { return len_; }
+	inline int leaveUpdates() { return leaveUpdates_; }
+	inline int joinUpdates() { return joinUpdates_; }
 	inline void clearAll() {  states_.clear(); len_ = 0; }
 
-	inline void push2(nsaddr_t group, nsaddr_t porta) { 
+	inline void push2(nsaddr_t group, nsaddr_t porta) {  
 		if (states_[group].empty())
 			len_++;
 
@@ -100,9 +102,13 @@ public:
 		if (states_[group].empty())
 			len_--;
 	}
+
+	inline void newUpdate(bool join) { if (join) joinUpdates_++; else leaveUpdates_++; }
 	
 	std::map< nsaddr_t, std::list<nsaddr_t> > states_;				/* multicast state for a given group */
 	int len_;
+	int joinUpdates_;
+	int leaveUpdates_;
 	static const int CAPACITY;
 };
 

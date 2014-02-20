@@ -268,7 +268,8 @@ void FattreeAgent::dumpPacket(Packet *p) {
 }
 
 void FattreeAgent::dumpMcastStates() {
-	fprintf(stderr, "node -addr %d -len(mcast) %d \n", addr_, mstates_.len());
+	fprintf(stderr, "node -addr %d -len(mcast) %d -joinU %d -leaveU %d \n", addr_, mstates_.len(), 
+						mstates_.joinUpdates(), mstates_.leaveUpdates());
 /*
 	for (std::map< nsaddr_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
 			i != mstates_.states_.end(); ++i) {
@@ -400,6 +401,7 @@ void GroupController::unsubscribe(Locator node, nsaddr_t group) {
 		gcs_[CINDEX][group].remove(Locator::getEdgeHopOf(node));
 	}
 	
+	// fprintf(stderr, "%d unsub %d\n", node_addr, group);
 	if (isElephant(group)) {
 		hashPIM::leave(node, group);
 	}
@@ -476,10 +478,13 @@ void hashPIM::join(Locator node, nsaddr_t group) {
 			// first entry in the aggr
 			aggr_mcast.push2(group, core);
 			core_mcast.push2(group, aggr);
+			core_mcast.newUpdate(true);
 		}
 		aggr_mcast.push2(group, edge);
+		aggr_mcast.newUpdate(true);
 	}
 	edge_mcast.push2(group, host);
+	edge_mcast.newUpdate(true);
 }
 
 void hashPIM::leave(Locator node, nsaddr_t group) {
@@ -493,15 +498,18 @@ void hashPIM::leave(Locator node, nsaddr_t group) {
 	MState& core_mcast = FattreeAgent::agent_pool_[core]->mstates_;
 
 	edge_mcast.remove2(group, host);
+	edge_mcast.newUpdate(false);
 	if (edge_mcast.states_[group].size() == 1) {
 		// last entry in the edge
 		// pop aggr in edge.mcast & pop edge in aggr.mcast
 		edge_mcast.remove2(group, aggr);
 		aggr_mcast.remove2(group, edge);
+		aggr_mcast.newUpdate(false);
 		if (aggr_mcast.states_[group].size() == 1) {
 			// first entry in the aggr
 			aggr_mcast.remove2(group, core);
 			core_mcast.remove2(group, aggr);
+			core_mcast.newUpdate(false);
 		}
 	}
 }
