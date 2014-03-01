@@ -10,10 +10,12 @@ def output2f(fname, line):
   fout.write(line)
   fout.close()
 
-fin = file('/home/mininet/trace/wve/anon-trace.txt', 'r')
+fin = file('/home/cwz/trace/wve/anon-trace.txt', 'r')
 
 group_stat = {}
 node_stat = {}
+group_num = {}
+group_mem = {}
 while True:
   line = fin.readline()
   if len(line) == 0:
@@ -25,6 +27,8 @@ while True:
   op = tuples[2]
   if not group_stat.has_key(group):
     group_stat[group] = 0
+    group_num[group] = 0
+    group_mem[group] = []
   if not node_stat.has_key(node):
     node_stat[node] = 0
   # output2f('nodes/%s.txt' % node, line)
@@ -34,12 +38,30 @@ while True:
     msg = tuples[4]
     group_stat[group] = group_stat[group] + int(msg)
     node_stat[node] = node_stat[node] + int(msg)
+  elif op == 'subscribe':
+    group_num[group] = group_num[group] + 1
+    group_mem[group].append(node)
+  else:
+    group_num[group] = group_num[group] - 1
 
 gslist = []
+sumtfc = 0
+sumOK = 0
 for key in group_stat.keys():
   gslist.append(group_stat[key])
-  # print '%s\t%d' % (key, group_stat[key])
+  setk = set(group_mem[key])
+  sumtfc = sumtfc + group_stat[key]
+  if ('1' in setk or '127' in setk) or len(setk) <= 2:# ('1' in setk and '127' in setk and len(setk) == 2) or len(setk) < 2:
+    sumOK = sumOK + group_stat[key]
+    pass
+  else:
+    print '%s\t%d\t%d\t[' % (key, group_stat[key], len(setk)),
+    for k in setk:
+      print '%s, ' % k,
+    print ']'
 gslist.sort()
+
+print '%d/%d=%f' % (sumtfc-sumOK, sumtfc, float(sumtfc-sumOK) / float(sumtfc))
 
 nslist = []
 for key in node_stat.keys():
@@ -65,7 +87,7 @@ cdf.append(cnt)
 
 gap = 10000
 for e in cdf:
-  print '%d\t%d' % (gap, e)
+  # print '%d\t%d' % (gap, e)
   gap = gap + 10000
   pass
 

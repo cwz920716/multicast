@@ -34,24 +34,25 @@ while True:
 
 k = 8
 
-
+'''
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
 
-'''
+
 
 
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-tfcsum\"' % (largest + 1, i)
 
 
-
+'''
+extra = 1000
 print
 print "#Dump links between the edge and host"
 for host in range(1, k * k * k / 4 + 1):
   edge = (host - 1) / (k / 2) + k * k * k / 4 + 1
-  print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, host, edge)
-  print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, edge, host)
+  print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, host, edge)
+  print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, edge, host)
 
 print "#Dump links between the aggr and edge"
 for edge in range(k * k * k / 4 + 1, k * k * k / 4 + k * k / 2 + 1):
@@ -59,8 +60,8 @@ for edge in range(k * k * k / 4 + 1, k * k * k / 4 + k * k / 2 + 1):
   aggr_r1 = k * k * k / 4 + k * k / 2 + (pod - 1) * k / 2 + 1
   aggr_r2 = aggr_r1 - 1 + k / 2
   for aggr in range(aggr_r1, aggr_r2 + 1):
-    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, edge, aggr)
-    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, aggr, edge)
+    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, edge, aggr)
+    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, aggr, edge)
 
 print "#Dump links between the core and aggr, classic fattree"
 for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
@@ -68,16 +69,17 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
   core_r1 = (aggr - k * k * k / 4 - k * k / 2 - 1) % (k / 2) * (k / 2) + 1 + k * k * k / 4 + k * k
   core_r2 = core_r1 - 1 + k / 2
   for core in range(core_r1, core_r2 + 1):
-    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, aggr, core)
-    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + 1, core, aggr)
+    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, aggr, core)
+    print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, core, aggr)
 
 
+'''
 ngroup = 2000
 print
 for g in range(1, ngroup + 1):
   print '$ns at %f \"$f%s dump-fair %s\"' % (largest + 1, 1, g)
 '''
 
-print '$ns at %f \"finish\"' % (largest + 1001)
+print '$ns at %f \"finish\"' % (largest + extra + 1)
 print '--END\n'
 fin.close()
