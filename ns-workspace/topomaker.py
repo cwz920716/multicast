@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
 template = file('template.tcl', 'r')
-k = 8
+k = 16
 
 while True:
   line = template.readline()
@@ -37,8 +37,8 @@ print
 print "#Create links between the edge and host"
 for host in range(1, k * k * k / 4 + 1):
   edge = (host - 1) / (k / 2) + k * k * k / 4 + 1
-  print "$ns duplex-link $n%d $n%d 1Mb 0ms DropTail" % (host, edge)
-  print "$ns queue-limit $n%d $n%d 500" % (host, edge)
+  print "$ns duplex-link $n%d $n%d 1Gb 0ms DropTail" % (host, edge)
+#  print "$ns queue-limit $n%d $n%d 500" % (host, edge)
 #  print "addExplicitRoute $n%d $n%d $n%d" % (host, edge, edge)
 #  print "addExplicitRoute $n%d $n%d $n%d" % (edge, host, host)
 
@@ -48,8 +48,8 @@ for edge in range(k * k * k / 4 + 1, k * k * k / 4 + k * k / 2 + 1):
   aggr_r1 = k * k * k / 4 + k * k / 2 + (pod - 1) * k / 2 + 1
   aggr_r2 = aggr_r1 - 1 + k / 2
   for aggr in range(aggr_r1, aggr_r2 + 1):
-    print "$ns duplex-link $n%d $n%d 1Mb 0ms DropTail" % (edge, aggr)
-    print "$ns queue-limit $n%d $n%d 500" % (edge, aggr)
+    print "$ns duplex-link $n%d $n%d 1Gb 0ms DropTail" % (edge, aggr)
+#    print "$ns queue-limit $n%d $n%d 500" % (edge, aggr)
 #    print "addExplicitRoute $n%d $n%d $n%d" % (edge, aggr, aggr)
 #    print "addExplicitRoute $n%d $n%d $n%d" % (aggr, edge, edge)
 
@@ -59,8 +59,8 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
   core_r1 = (aggr - k * k * k / 4 - k * k / 2 - 1) % (k / 2) * (k / 2) + 1 + k * k * k / 4 + k * k
   core_r2 = core_r1 - 1 + k / 2
   for core in range(core_r1, core_r2 + 1):
-    print "$ns duplex-link $n%d $n%d 1Mb 0ms DropTail" % (aggr, core)
-    print "$ns queue-limit $n%d $n%d 500" % (aggr, core)
+    print "$ns duplex-link $n%d $n%d 1Gb 0ms DropTail" % (aggr, core)
+#    print "$ns queue-limit $n%d $n%d 500" % (aggr, core)
 #    print "addExplicitRoute $n%d $n%d $n%d" % (aggr, core, core)
 #    print "addExplicitRoute $n%d $n%d $n%d" % (core, aggr, aggr)
 
