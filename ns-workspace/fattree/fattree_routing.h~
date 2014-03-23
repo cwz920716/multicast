@@ -4,6 +4,8 @@
 
 #include <map>
 #include <list>
+#include <set>
+#include <vector>
 #include <iostream>
 #include <algorithm>
 
@@ -28,6 +30,7 @@
  * node k * k * k / 4 + k * k + [1 - k * k / 4] core
  */
 #define FATTREE_K 16
+#define N_REPLICA 4
 
 
 /*
@@ -112,6 +115,83 @@ public:
 	static const int CAPACITY;
 };
 
+/*
+ * This is the key for enhanced multicast state. 
+ * this is a <src, group> pair
+ */
+typedef unsigned long hashedKey_t;
+
+hashedKey_t getKey(nsaddr_t src, nsaddr_t group) {
+	hashedKey_t k = src;
+	k = (k << 32) | group;
+	return k;
+}
+
+hashedKey_t hashKey(nsaddr_t src, nsaddr_t group) {
+	nsaddr_t hsrc = (src * 2654435761) % (N_REPLICA);
+	return getKey(hsrc, group);
+}
+
+hashedKey_t randomKey(nsaddr_t src, nsaddr_t group, int seq) {
+	nsaddr_t hsrc = (seq * 2654435761) % (N_REPLICA);
+	return getKey(hsrc, group);
+}
+
+nsaddr_t getGroupAddr(hashedKey_t k) {
+	return (nsaddr_t) (k & 0x00000000ffffffff);
+}
+
+nsaddr_t getSrcAddr(hashedKey_t k) {
+	return (nsaddr_t) (k >> 32);
+}
+
+/*
+ * This is the multicast state for multi tree. 
+ */
+class MtreeState {
+public:
+	friend class FattreeAgent;
+	friend class mtreePIM;
+
+	MtreeState() : states_(), serials_(), len_(0), joinUpdates_(0), leaveUpdates_(0) {}
+	inline int len() { return len_; }
+	inline int leaveUpdates() { return leaveUpdates_; }
+	inline int joinUpdates() { return joinUpdates_; }
+	inline void clearAll() {  states_.clear(); len_ = 0; }
+
+	inline void push2(hashedKey_t k, nsaddr_t porta) {  
+		if (states_[k].empty())
+			len_++;
+
+		states_[k].push_back(porta); 
+	}
+
+	inline void remove2(hashedKey_t k, nsaddr_t porta) { 
+		states_[k].remove(porta); 
+		
+		if (states_[k].empty())
+			len_--;
+	}
+
+	inline void newUpdate(bool join, unsigned long serial) { 
+		if (serials_.find(serial) != serials_.end())
+			return;
+
+		if (join) 
+			joinUpdates_++; 
+		else 
+			leaveUpdates_++; 
+		serials_.insert(serial);
+	}
+	
+	std::map< hashedKey_t, std::list<nsaddr_t> > states_;				/* multicast state for a given group */
+	std::set<unsigned long> serials_;
+	int len_;
+	int joinUpdates_;
+	int leaveUpdates_;
+	static const int CAPACITY;
+};
+
 
 /*
  * This is the membership controller. 
@@ -120,6 +200,7 @@ class GroupController {
 public:
 	friend class FattreeAgent;
 	friend class hashPIM;
+	friend class mtreePIM;
 
 	void subscribe(Locator node, nsaddr_t group);
 	void unsubscribe(Locator node, nsaddr_t group);
@@ -161,6 +242,7 @@ public:
 	 * For central, the members are edge nodes, it's index is 0
 	 * For others, it's undefined and shouldn't be accessed
 	 */
+	unsigned long nextSerial_;
 	std::map< nsaddr_t, std::list<nsaddr_t> > gcs_[FATTREE_K * FATTREE_K / 2 + 1];
 	std::map< nsaddr_t, unsigned long > tfcmtx_;
 	std::map< nsaddr_t, double > start_;
@@ -183,12 +265,29 @@ public:
 	static void leave(Locator node, nsaddr_t group);		
 };
 
+typedef struct RPs {
+	nsaddr_t cores[N_REPLICA];
+} rps_t;
+
+class mtreePIM {
+public:
+	static std::map< nsaddr_t, rps_t > rpbase_;
+	static rps_t searchRP(nsaddr_t group);							/* get the hashed core address for the group */
+	static void build(nsaddr_t group);			
+	static void join(Locator node, nsaddr_t group);
+	static void leave(Locator node, nsaddr_t group);
+private:		
+	static void joinRP(Locator node, nsaddr_t group, nsaddr_t RPkey);
+	static void leaveRP(Locator node, nsaddr_t group, nsaddr_t RPkey);
+};
+
 /*
  * This is the fattree routing agent. 
  */
 class FattreeAgent : public Agent {
 public:
 	friend class hashPIM;
+	friend class mtreePIM;
 
 	FattreeAgent();
 	int command(int, const char*const*);
@@ -207,7 +306,8 @@ private:
 	// the node information	
 	nsaddr_t addr_;							// addr
 	Locator locator_;						// locator of this node based on the addr
-	MState mstates_;							// multicast state of this node
+	MtreeState mstates_;							// multicast state of this node
+	int nextseq_;									// the nextseq to send
 	std::map< nsaddr_t, long> tfcmtx_;
 	long tfcsum_;
 
@@ -215,8 +315,8 @@ private:
 	void dumpPacket(Packet*);
 	void dumpMcastStates();
 	void post(nsaddr_t, int);
-	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t);
-	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t, bool, nsaddr_t, nsaddr_t);
+	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t, int );
+	void send2(nsaddr_t, int, nsaddr_t, nsaddr_t, int, bool, nsaddr_t, nsaddr_t);
 	void mcast(Packet*);
 	void ucast(Packet*);
 	void m2u(Packet*);

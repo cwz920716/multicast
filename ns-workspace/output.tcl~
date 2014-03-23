@@ -7,15 +7,15 @@ set rtProto Static
 #$ns color 2 Red
 
 #Open the nam trace file
-set nf [open out.nam w]
-$ns namtrace-all $nf
+# set nf [open out.nam w]
+# $ns namtrace-all $nf
 
 #Define a 'finish' procedure
 proc finish {} {
-        global ns nf
-        $ns flush-trace
+        global ns # nf
+        # $ns flush-trace
 	#Close the trace file
-        close $nf
+        # close $nf
 	#Execute nam on the trace file
         # exec nam out.nam &
         exit 0
@@ -282,17 +282,33 @@ $ns duplex-link $n31 $n34 1Gb 0ms DropTail
 $ns duplex-link $n32 $n35 1Gb 0ms DropTail
 $ns duplex-link $n32 $n36 1Gb 0ms DropTail
 
-$ns at 1.0 "$f1 subscribe 1"
-$ns at 2.0 "$f2 subscribe 2"
-$ns at 2.0 "$f3 subscribe 2"
-$ns at 2.0 "$f7 subscribe 1"
-$ns at 2.0 "$f12 subscribe 1"
-$ns at 2.0 "$f16 subscribe 2"
-$ns at 3.0 "$f1 post 1 1000"
-$ns at 3.0 "$f17 dump-group 2"
-$ns at 4.0 "$f2 post 2 1000"
-$ns at 4.0 "$f5 post 2 1000"
-$ns at 5.0 "$f17 dump-group 1"
-$ns at 100.0 "finish"
+$ns at 26.250000 "$f1 subscribe 15"
+$ns at 26.250000 "$f2 subscribe 15"
+$ns at 26.250000 "$f3 subscribe 15"
+$ns at 26.250000 "$f5 subscribe 15"
+$ns at 26.250000 "$f7 subscribe 15"
+$ns at 26.250000 "$f13 subscribe 15"
+$ns at 27.250000 "$f1 post 15 1024"
+$ns at 1026.250000 "$f17 dump-mcast"
+$ns at 1026.250000 "$f18 dump-mcast"
+$ns at 1026.250000 "$f19 dump-mcast"
+$ns at 1026.250000 "$f20 dump-mcast"
+$ns at 1026.250000 "$f21 dump-mcast"
+$ns at 1026.250000 "$f22 dump-mcast"
+$ns at 1026.250000 "$f23 dump-mcast"
+$ns at 1026.250000 "$f24 dump-mcast"
+$ns at 1026.250000 "$f25 dump-mcast"
+$ns at 1026.250000 "$f26 dump-mcast"
+$ns at 1026.250000 "$f27 dump-mcast"
+$ns at 1026.250000 "$f28 dump-mcast"
+$ns at 1026.250000 "$f29 dump-mcast"
+$ns at 1026.250000 "$f30 dump-mcast"
+$ns at 1026.250000 "$f31 dump-mcast"
+$ns at 1026.250000 "$f32 dump-mcast"
+$ns at 1026.250000 "$f33 dump-mcast"
+$ns at 1026.250000 "$f34 dump-mcast"
+$ns at 1026.250000 "$f35 dump-mcast"
+$ns at 1026.250000 "$f36 dump-mcast"
+$ns at 1027.250000 "finish"
 
 $ns run

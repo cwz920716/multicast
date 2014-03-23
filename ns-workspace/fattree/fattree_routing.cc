@@ -30,6 +30,7 @@ public:
  *
  *************************************************************/
 const int MState::CAPACITY = 1000;
+const int MtreeState::CAPACITY = 1000;
 
 
 /*************************************************************
@@ -40,6 +41,7 @@ const int MState::CAPACITY = 1000;
 
 FattreeAgent::FattreeAgent() : Agent(PT_FATTREE), addr_(-1) {
 	tfcsum_ = 0;
+	nextseq_ = 0;
 }
 
 int FattreeAgent::command(int argc, const char*const* argv) {
@@ -191,7 +193,7 @@ void FattreeAgent::m2u(Packet *p) {
 		if (nexthop == hdr->lasthop_)
 			continue;
 
-		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_, 
+		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_, hdr->seq_,
 								true, addr_, nexthop);
 	}
 
@@ -206,7 +208,7 @@ void FattreeAgent::m2u(Packet *p) {
 			continue;
 
 		// fprintf(stderr, "%d\n", Locator::getNextHopFor(locator_, tdest));
-		send2(Locator::getNextHopFor(locator_, tdest), hdr->content_size_, hdr->source_, hdr->group_, 
+		send2(Locator::getNextHopFor(locator_, tdest), hdr->content_size_, hdr->source_, hdr->group_, hdr->seq_,
 								true, addr_, tdest);
 	}
 	// fprintf(stderr, "\n");
@@ -218,15 +220,16 @@ void FattreeAgent::ucast(Packet *p) {
 	if (!hdr->tunnelFg_)
 		fprintf(stderr, "ucast a non-tunneled pkt.\n");
 	
-	send2(Locator::getNextHopFor(locator_, hdr->tdest_), hdr->content_size_, hdr->source_, hdr->group_, 
+	send2(Locator::getNextHopFor(locator_, hdr->tdest_), hdr->content_size_, hdr->source_, hdr->group_, hdr->seq_,
 												hdr->tunnelFg_, hdr->tsrc_, hdr->tdest_);
 }
 
 void FattreeAgent::mcast(Packet *p) {
 	struct hdr_fattree_data *hdr = HDR_FATTREE_DATA(p);
 	nsaddr_t group = hdr->group_;
+	hashedKey_t key = randomKey(hdr->source_, hdr->group_, hdr->seq_);
 
-	std::list<nsaddr_t>& ports = mstates_.states_[group];
+	std::list<nsaddr_t>& ports = mstates_.states_[key];
 	if (ports.empty()) {
 		// best effort model
 		// transfer to hashPIM core
@@ -235,18 +238,18 @@ void FattreeAgent::mcast(Packet *p) {
 			return;
 		}
 
-		nsaddr_t core = hashPIM::chash(group);
+		nsaddr_t core = mtreePIM::searchRP(group).cores[getSrcAddr(key)];
 		nsaddr_t nexthop = core;
 		if (locator_.isEdge())
 			nexthop = Locator::getAggrHopOf(locator_, core);
-		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_);
+		send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_, hdr->seq_);
 		return;
 	}
 
 	for (std::list<nsaddr_t>::iterator i = ports.begin(); i != ports.end(); ++i) {
 		nsaddr_t nexthop = *i;
 		if (nexthop != hdr->lasthop_ && !shortcut_mcast(nexthop, group)) {
-			send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_);
+			send2(nexthop, hdr->content_size_, hdr->source_, hdr->group_, hdr->seq_);
 		}
 	}
 }
@@ -271,9 +274,9 @@ void FattreeAgent::dumpMcastStates() {
 	fprintf(stderr, "node -addr %d -len(mcast) %d -joinU %d -leaveU %d \n", addr_, mstates_.len(), 
 						mstates_.joinUpdates(), mstates_.leaveUpdates());
 /*
-	for (std::map< nsaddr_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
+	for (std::map< hashedKey_t, std::list<nsaddr_t> >::iterator i = mstates_.states_.begin();
 			i != mstates_.states_.end(); ++i) {
-		fprintf(stderr, "entry -group %d [", (*i).first);
+		fprintf(stderr, "entry -group (%d, %d) [", getSrcAddr((*i).first), getGroupAddr((*i).first));
 		std::list<nsaddr_t>& ports = (*i).second;
 		for (std::list<nsaddr_t>::iterator j = ports.begin(); j != ports.end(); ++j)
 			fprintf(stderr, "%d, ", *j);
@@ -285,14 +288,14 @@ void FattreeAgent::dumpMcastStates() {
 void FattreeAgent::post(nsaddr_t group, int size) {
 	// fprintf(stderr, "host %d post %d bytes to group %d at %f.\n", addr_, size, group, 
 	//			(Scheduler::instance().clock()) * 1000);
-	send2(Locator::getEdgeHopOf(locator_), size, addr_, group);
+	send2(Locator::getEdgeHopOf(locator_), size, addr_, group, (int) rand());
 }
 
-void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t group) {
-	send2(nexthop, size, source, group, false, -1, -1);
+void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t group, int seq) {
+	send2(nexthop, size, source, group, seq, false, -1, -1);
 }
 
-void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t group, bool tunnelFg, nsaddr_t tsrc, nsaddr_t tdest) {
+void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t group, int seq, bool tunnelFg, nsaddr_t tsrc, nsaddr_t tdest) {
 	// Create a new packet
 	connect2(nexthop);
 	Packet* p = allocpkt();
@@ -300,6 +303,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
 	struct hdr_fattree_data *hdr = HDR_FATTREE_DATA(p);
 	hdr->source_ = source;
 	hdr->group_ = group;
+	hdr->seq_ = seq;
 	hdr->tunnelFg_ = tunnelFg;
 	hdr->tsrc_ = tsrc;
 	hdr->tdest_ = tdest;
@@ -327,7 +331,7 @@ void FattreeAgent::send2(nsaddr_t nexthop, int size, nsaddr_t source, nsaddr_t g
  *************************************************************/
 
 const int GroupController::CINDEX = 0;
-const unsigned long GroupController::THRESHOLD = 100 * 1024;
+const unsigned long GroupController::THRESHOLD = 1024 * 1024;
 
 int GroupController::indexOfControllers(Locator node) {
 	int k = FATTREE_K;
@@ -386,7 +390,8 @@ void GroupController::subscribe(Locator node, nsaddr_t group) {
 	c[group].push_back(node_addr);
 
 	if (isElephant(group)) {
-		hashPIM::join(node, group);
+		nextSerial_++;
+		mtreePIM::join(node, group);
 	}
 }
 
@@ -403,14 +408,16 @@ void GroupController::unsubscribe(Locator node, nsaddr_t group) {
 	
 	// fprintf(stderr, "%d unsub %d\n", node_addr, group);
 	if (isElephant(group)) {
-		hashPIM::leave(node, group);
+		nextSerial_++;
+		mtreePIM::leave(node, group);
 	}
 }
 
 void GroupController::post(nsaddr_t group, int len) {
 	if (preElephant(group, len)) {
 		// fprintf(stderr, "%d %ld", group, tfcmtx_[group] + len);
-		hashPIM::build(group);
+		nextSerial_++;
+		mtreePIM::build(group);
 	}
 	tfcmtx_[group] += len;
 
@@ -442,6 +449,7 @@ void GroupController::receive(nsaddr_t group) {
  *
  *************************************************************/
 
+/*
 nsaddr_t hashPIM::chash(nsaddr_t group) {
 	int k = FATTREE_K;
 	int hashed = (group * 2654435761) % (k * k / 4) + 1;
@@ -513,6 +521,153 @@ void hashPIM::leave(Locator node, nsaddr_t group) {
 		}
 	}
 }
+*/
+
+
+/*************************************************************
+ *
+ *mtreePIM Section
+ *
+ *************************************************************/
+std::map< nsaddr_t, rps_t > mtreePIM::rpbase_;
+
+/*
+ * search all the cores with ascending states.
+ * executed exactly only once for every group.
+ *  0. n_left = RPs to select; 
+ *     S = {all cores}; 
+ *     RPs = {}
+ *  1. get the minimum states in S
+ *  2. s = {cores with minimum states}
+ *  3. newRPs = min{|s|, n_left} randomly selected cores from s
+ *     n_left -= min{|s|, n_left}
+ *     S -= newRPs
+ *     RPs += newRPs
+ *  4. if n_left > 0 goto 1
+ */
+rps_t mtreePIM::searchRP(nsaddr_t group) {
+	if (rpbase_.find(group) != rpbase_.end()) 
+		return rpbase_[group];
+
+	rps_t res;
+	int n_left = N_REPLICA;
+	std::set<nsaddr_t> S;
+	std::vector<nsaddr_t> s;
+	int k = FATTREE_K;
+	for (int i = 1; i <= k * k / 4; i++)
+		S.insert(k * k * k / 4 + k * k + i);
+
+	do {
+		s.clear();
+		int min = -1;
+		for (std::set<nsaddr_t>::const_iterator i = S.begin(); i != S.end(); ++i) {
+			int nstate = FattreeAgent::agent_pool_[*i]->mstates_.len();
+			if (min < 0 || nstate < min)
+				min = nstate;
+		} 
+		int size_s = 0;
+		for (std::set<nsaddr_t>::const_iterator i = S.begin(); i != S.end(); ++i) {
+			int nstate = FattreeAgent::agent_pool_[*i]->mstates_.len();
+			if (nstate == min) {
+				s.push_back(*i);
+				size_s++;
+			}
+		}
+		int n = size_s <= n_left ? size_s : n_left;
+		while (n > 0) {
+			int r = rand() % s.size();
+			nsaddr_t next = s[r];
+			res.cores[N_REPLICA - n_left] = next;
+			S.erase(next);
+			s.erase(s.begin() + r);
+			n_left--;
+			n--;
+		}
+	} while (n_left > 0);
+
+	rpbase_[group] = res;
+	return res;
+}
+
+void mtreePIM::build(nsaddr_t group) {
+	GroupController& gc = FattreeAgent::centralGC_;
+	std::list<nsaddr_t>& edgelist = gc.gcs_[GroupController::CINDEX][group];
+	for (std::list<nsaddr_t>::const_iterator i = edgelist.begin(); i != edgelist.end(); ++i ) {
+		std::list<nsaddr_t>& hostlist = gc.gcs_[GroupController::indexOfControllersForEdge(*i)][group];
+		for (std::list<nsaddr_t>::const_iterator j = hostlist.begin(); j != hostlist.end(); ++j ) {
+			join(Locator::addr2Locator(*j), group);
+		}
+	}
+}
+
+void mtreePIM::join(Locator node, nsaddr_t group) {
+	for (nsaddr_t i = 0; i < N_REPLICA; i++)
+		joinRP(node, group, i);
+}
+
+void mtreePIM::leave(Locator node, nsaddr_t group) {
+	for (nsaddr_t i = 0; i < N_REPLICA; i++)
+		leaveRP(node, group, i);
+}
+
+void mtreePIM::joinRP(Locator node, nsaddr_t group, nsaddr_t RPkey) {
+	// install mcast entry at the edge
+	GroupController& gc = FattreeAgent::centralGC_;
+	hashedKey_t k = getKey(RPkey, group);
+	nsaddr_t host = Locator::locator2Addr(node);
+	nsaddr_t edge = Locator::getEdgeHopOf(node);
+	nsaddr_t core = searchRP(group).cores[RPkey];
+	nsaddr_t aggr = Locator::getAggrHopOf(node, core);
+	MtreeState& edge_mcast = FattreeAgent::agent_pool_[edge]->mstates_;
+	MtreeState& aggr_mcast = FattreeAgent::agent_pool_[aggr]->mstates_;
+	MtreeState& core_mcast = FattreeAgent::agent_pool_[core]->mstates_;
+
+	if (edge_mcast.states_[k].empty()) {
+		// first entry in the edge
+		// push aggr in edge.mcast & push edge in aggr.mcast
+		edge_mcast.push2(k, aggr);
+		if (aggr_mcast.states_[k].empty()) {
+			// first entry in the aggr
+			aggr_mcast.push2(k, core);
+			core_mcast.push2(k, aggr);
+			core_mcast.newUpdate(true, gc.nextSerial_);
+		}
+		aggr_mcast.push2(k, edge);
+		aggr_mcast.newUpdate(true, gc.nextSerial_);
+	}
+	edge_mcast.push2(k, host);
+	edge_mcast.newUpdate(true, gc.nextSerial_);
+}
+
+void mtreePIM::leaveRP(Locator node, nsaddr_t group, nsaddr_t RPkey) {
+	// uninstall mcast entry at the edge
+	GroupController& gc = FattreeAgent::centralGC_;
+	hashedKey_t k = getKey(RPkey, group);
+	nsaddr_t host = Locator::locator2Addr(node);
+	nsaddr_t edge = Locator::getEdgeHopOf(node);
+	nsaddr_t core = searchRP(group).cores[RPkey];
+	nsaddr_t aggr = Locator::getAggrHopOf(node, core);
+	MtreeState& edge_mcast = FattreeAgent::agent_pool_[edge]->mstates_;
+	MtreeState& aggr_mcast = FattreeAgent::agent_pool_[aggr]->mstates_;
+	MtreeState& core_mcast = FattreeAgent::agent_pool_[core]->mstates_;
+
+	edge_mcast.remove2(k, host);
+	edge_mcast.newUpdate(false, gc.nextSerial_);
+	if (edge_mcast.states_[k].size() == 1) {
+		// last entry in the edge
+		// pop aggr in edge.mcast & pop edge in aggr.mcast
+		edge_mcast.remove2(k, aggr);
+		aggr_mcast.remove2(k, edge);
+		aggr_mcast.newUpdate(false, gc.nextSerial_);
+		if (aggr_mcast.states_[k].size() == 1) {
+			// first entry in the aggr
+			aggr_mcast.remove2(k, core);
+			core_mcast.remove2(k, aggr);
+			core_mcast.newUpdate(false, gc.nextSerial_);
+		}
+	}
+}
+
 
 
 

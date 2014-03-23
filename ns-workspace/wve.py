@@ -34,19 +34,17 @@ while True:
 
 k = 8
 
-'''
+extra = 1
+
+
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
-  print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
+  print '$ns at %f \"$f%d dump-mcast\"' % (largest + extra, i)
 
-
-
-
+'''
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-tfcsum\"' % (largest + 1, i)
-
-
 '''
-extra = 1000
+
 print
 print "#Dump links between the edge and host"
 for host in range(1, k * k * k / 4 + 1):
@@ -71,7 +69,6 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
   for core in range(core_r1, core_r2 + 1):
     print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, aggr, core)
     print '$ns at %f \"$f%s dump-link-stat %s\"' % (largest + extra, core, aggr)
-
 
 '''
 ngroup = 2000

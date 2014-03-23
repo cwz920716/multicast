@@ -7,6 +7,8 @@
 #define HDR_FATTREE(p)   ((struct hdr_fattree*)hdr_fattree::access(p))
 #define HDR_FATTREE_DATA(p) ((struct hdr_fattree_data*)hdr_fattree::access(p))
 
+#define IPTUNNEL_OVERHEAD (4 * 5)
+
 enum FattreePktType {
 	FATTREE_PKT_DATA		// data
 };

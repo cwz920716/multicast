@@ -28,6 +28,7 @@ struct hdr_fattree_data {
 	FattreePktType type_;					// the type of pkt
 	nsaddr_t source_;						// the source addr
 	nsaddr_t group_;						// the group addr
+	int seq_;								// the seq number
 // GRE/Tunnel Layer
 	bool tunnelFg_;							// the tunnel Flag	
 	nsaddr_t tsrc_;							// the tunnel source

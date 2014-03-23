@@ -32,21 +32,21 @@ while True:
   elif op == 'unsubscribe':
     print '$ns at %f \"$f%s unsubscribe %s\"' % (time, node, group)
 
-k = 16
+k = 8
+extra = 1
+
+
+for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
+  print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1, i)
+
+
 
 '''
-for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
-  print '$ns at %f \"$f%d dump-mcast\"' % (largest + 1000, i)
-
-
-
-
 for i in range(k * k * k / 4 + 1, k * k * k / 4 + k * k + k * k / 4 + 1):
   print '$ns at %f \"$f%d dump-tfcsum\"' % (largest + 1, i)
 
 
 '''
-extra = 1
 print
 print "#Dump links between the edge and host"
 for host in range(1, k * k * k / 4 + 1):
@@ -74,7 +74,7 @@ for aggr in range(k * k * k / 4 + k * k / 2 + 1, k * k * k / 4 + k * k + 1):
 
 
 '''
-ngroup = 2000
+ngroup = 16000
 print
 for g in range(1, ngroup + 1):
   print '$ns at %f \"$f%s dump-fair %s\"' % (largest + 1, 1, g)
