@@ -1,0 +1,309 @@
+/* -*-	Mode:C++; c-basic-offset:4; tab-width:4; indent-tabs-mode:t -*- */
+#include "fattree_routing.h"
+
+using namespace std;
+
+int hdr_difs::offset_;
+std::map< nsaddr_t, DiFSAgent * > DiFSAgent::agent_pool_;
+
+static class DiFSHeaderClass : public PacketHeaderClass{
+public:
+	DiFSHeaderClass() : PacketHeaderClass("PacketHeader/DiFS",
+										  sizeof(hdr_all_difs)){
+										  bind_offset(&hdr_difs::offset_);
+	}
+} class_difshdr;
+
+static class DiFSAgentClass : public TclClass {
+public:
+	DiFSAgentClass() : TclClass("Agent/DiFS") {}
+	TclObject *create(int argc, const char*const* argv) {
+		return (new DiFSAgent());
+	}
+} class_DiFSAgent;
+
+
+
+
+/*************************************************************
+ *
+ *DiFS Section
+ *
+ *************************************************************/
+
+DiFSAgent::DiFSAgent() : Agent(PT_DIFS), addr_(-1) {
+}
+
+int FattreeAgent::command(int argc, const char*const* argv) {
+	if (argc == 2) {
+		if (strcasecmp(argv[1], "start") == 0) {
+			// sched next reflect event
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "show-port") == 0) {
+			fprintf(stderr, "%d \n", here_.port_);
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "show-addr") == 0) {
+			fprintf(stderr, "%d \n", here_.addr_);
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "show-dst-port") == 0) {
+			fprintf(stderr, "%d \n", dst_.port_);
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "show-dst-addr") == 0) {
+			fprintf(stderr, "%d \n", dst_.addr_);
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "dump-state") == 0) {
+			dumpStates();
+			return TCL_OK;
+		} else if (strcasecmp(argv[1], "reflect") == 0) {
+			if (locator_.isHost()) {
+				fprintf(stderr, "no supported post on host node %d \n", addr_);
+				return TCL_ERROR;
+			}
+			reflect();
+			return TCL_OK;
+		}
+	} else if (argc == 3) {
+		if (strcmp(argv[1], "addr") == 0) {
+			addr_ = Address::instance().str2addr(argv[2]);
+			locator_ = Locator::addr2Locator(addr_);
+			agent_pool_.insert(map< nsaddr_t, DiFSAgent * >::value_type(addr_, this));
+			return TCL_OK;
+		} else if (strcmp(argv[1], "remove-flow") == 0) {
+			// unimplemented yet
+			return TCL_OK;
+		} else if (strcmp(argv[1], "log-target") == 0 || strcmp(argv[1], "tracetarget") == 0) {
+			logtarget_ = (Trace*)TclObject::lookup(argv[2]);
+			if (logtarget_ == 0) {
+				fprintf(stderr, "%s: %s lookup of %s failed \n", __FILE__, argv[1], argv[2]);
+				return TCL_ERROR;
+			}
+			return TCL_OK;
+		} 
+	} else if (argc == 5) {
+		if (strcmp(argv[1], "assign-flow") == 0) {
+			int fid = atoi(argv[2]);
+			nsaddr_t src = Address::instance().str2addr(argv[3]);
+			nsaddr_t dst = Address::instance().str2addr(argv[4]);
+			assign(fid, src, dst);
+			return TCL_OK;
+		}
+	}
+
+	return Agent::command(argc, argv);
+}
+
+void DiFSAgent::recv(Packet* p, Handler* h) {
+	struct hdr_difs_data *hdr = HDR_DIFS_DATA(p);
+	// struct hdr_ip* ih = HDR_IP(p);
+	
+	if (locator_.isHost()) {
+		// host: discard
+		Packet::free(p);
+		return; 
+	} else if (locator_.isEdge()) {
+		// edge: adapt or discard 
+		
+		
+		Packet::free(p);
+	} else if (locator_.isAggr()) {
+		// aggr: adapt or forward
+		
+		
+		Packet::free(p);
+	} else if (locator_.isCore()) {
+		// core: SISO for all flow, forward this to the incoming port
+		
+
+		Packet::free(p);
+	}
+
+}
+
+void DiFSAgent::dumpPacket(Packet *p) {
+	struct hdr_difs_data *hdr = HDR_DIFS_DATA(p);
+	fprintf(stderr, "pkt -n %d -n %d -s %d -d %d -h %d",
+			 addr_, HDR_CMN(p)->next_hop(), hdr->fid_, hdr->recore_, (HDR_CMN(p))->num_forwards());
+}
+
+void DiFSAgent::dumpStates() { 
+}
+
+void DiFSAgent::reflect() { 
+	// remove flows: unneccssary
+	// rebalance: unimplemented yet
+	// imbalance detection
+	sendEAR();
+}
+
+void DiFSAgent::sendEAR() { 
+}
+
+void DiFSAgent::addFlow(int fid, nsaddr_t lasthop, nsaddr_t nexthop) {
+	income_[fid] = lasthop;
+	outgo_[fid] = nexthop;
+	vi_[lasthop]++;
+	vo_[nexthop]++;
+}
+
+nsaddr_t DiFSAgent::pathAlloc(int fid, nsaddr_t src, nsaddr_t dst) {
+	
+}
+
+void DiFSAgent::assign(int fid, nsaddr_t src, nsaddr_t dst) { 
+}
+
+void DiFSAgent::send2(nsaddr_t nexthop, int fid, nsaddr_t recore, nsaddr_t reaggr) {
+	// Create a new packet
+	connect2(nexthop);
+	Packet* p = allocpkt();
+	// Access the Fattree header for the new packet:
+	struct hdr_difs_data *hdr = HDR_DIFS_DATA(p);
+	hdr->fid_ = fid;
+	hdr->recore_ = recore;
+	hdr->reaggr_ = reaggr;
+	hdr->nexthop_ = nexthop;
+	
+	send(p, 0);
+}
+
+/*************************************************************
+ *
+ *Locator Section
+ *
+ *************************************************************/
+
+Locator Locator::addr2Locator(nsaddr_t addr) {
+	Locator l;
+ 	unsigned char k = FATTREE_K;
+	if (1 <= addr && addr <= k * k * k / 4) {
+		// host addr
+		l.aggr = 0;
+		l.cpod = (addr - 1) / (k * k / 4) + 1;
+		l.edge = (addr - (l.cpod - 1) * (k * k / 4) - 1) / (k / 2) + 1;
+		l.host = (addr - 1) % (k / 2) + 1; 
+	} else if (k * k * k / 4 + 1 <= addr && addr <= k * k * k / 4 + k * k / 2) {
+		// edge addr
+		nsaddr_t offset = k * k * k / 4 + 1;
+		l.aggr = 0;
+		l.host = 0;
+		l.cpod = (addr - offset) / (k / 2) + 1;
+		l.edge = (addr - offset) % (k / 2) + 1;
+	} else if (k * k * k / 4 + k * k / 2 + 1 <= addr && addr <= k * k * k / 4 + k * k) {
+		// aggr addr
+		nsaddr_t offset = k * k * k / 4 + k * k / 2 + 1;
+		l.edge = 0;
+		l.host = 0;
+		l.cpod = (addr - offset) / (k / 2) + 1;
+		l.aggr = (addr - offset) % (k / 2) + 1;
+	} else if (k * k * k / 4 + k * k + 1 <= addr && addr <= k * k * k / 4 + k * k + k * k / 4) {
+		// core addr
+		nsaddr_t offset = k * k * k / 4 + k * k;
+		l.edge = 0;
+		l.host = 0;
+		l.cpod = addr - offset;
+		l.aggr = 0;
+	}
+
+	return l;
+}
+
+nsaddr_t Locator::locator2Addr(Locator l) {
+	nsaddr_t addr = 0;
+ 	unsigned char k = FATTREE_K;
+	if (l.isHost()) {
+		addr = (l.cpod - 1) * (k * k / 4) + (l.edge - 1) * (k / 2) + l.host;
+	} else if (l.isEdge()) {
+		nsaddr_t base = k * k * k / 4;
+		addr = (l.cpod - 1) * (k / 2) + l.edge + base;
+	} else if (l.isAggr()) {
+		nsaddr_t base = k * k * k / 4 + k * k / 2;
+		addr = (l.cpod - 1) * (k / 2) + l.aggr + base;
+	} else if (l.isCore()) {
+		nsaddr_t base = k * k * k / 4 + k * k;
+		addr = l.cpod + base;
+	}
+
+	return addr;
+}
+
+/* 
+ * only for unicast tunnel between edges
+ */
+nsaddr_t Locator::getNextHopFor(Locator cur_loc, nsaddr_t dest) {
+	Locator dest_loc = addr2Locator(dest);
+	unsigned char k = FATTREE_K;
+	nsaddr_t nexthop = -1;
+
+	if (!dest_loc.isEdge() || cur_loc.isHost()) {
+		fprintf(stderr, "only for unicast tunnel between edges.\n");
+		return -1;
+	}
+
+/*	if (cur_loc.isHost()) {
+		Locator edge = cur_loc;
+		edge.host = 0;
+		nexthop = locator2Addr(edge);
+	} else
+*/ 
+	if (cur_loc.isEdge()) {
+		if (dest_loc.cpod == cur_loc.cpod && dest_loc.edge == cur_loc.edge) {
+			fprintf(stderr, "self loop.\n");
+			return -1;
+		} else {
+			Locator aggr = cur_loc;
+			aggr.edge = 0;
+			aggr.aggr = rand() % (k / 2) + 1;
+			nexthop = locator2Addr(aggr);
+		}
+	} else if (cur_loc.isAggr()) {
+		if (dest_loc.cpod == cur_loc.cpod) {
+			Locator edge = dest_loc;
+			edge.host = 0;
+			nexthop = locator2Addr(edge);
+		} else {
+			Locator core = cur_loc;
+			core.aggr = 0;
+			core.cpod = (cur_loc.aggr - 1) * (k / 2) + rand() % (k / 2) + 1;					// for default fat tree
+			nexthop = locator2Addr(core);
+		}
+	} else if (cur_loc.isCore()) {
+		Locator aggr = cur_loc;
+		aggr.cpod = dest_loc.cpod;
+		aggr.aggr = (cur_loc.cpod - 1) / (k / 2) + 1;											// for default fat tree
+		nexthop = locator2Addr(aggr);
+	}
+
+	return nexthop;
+}
+
+nsaddr_t Locator::getEdgeHopOf(Locator host_loc) {
+	nsaddr_t edgehop = -1;
+
+	if (host_loc.isHost()) {
+		Locator edge = host_loc;
+		edge.host = 0;
+		edgehop = locator2Addr(edge);
+	} else {
+		fprintf(stderr, "no supported getEdgeHopOf() on non-host node %d.\n", locator2Addr(host_loc));
+	}
+
+	return edgehop;
+}
+
+nsaddr_t Locator::getAggrHopOf(Locator host_loc, nsaddr_t core) {
+	nsaddr_t aggrhop = -1;
+	unsigned char k = FATTREE_K;
+	
+	if (host_loc.isHost() || host_loc.isEdge()) {
+		// for default fat tree
+		// unsigned char pod = host_loc.cpod;
+		Locator aggr = host_loc;
+		aggr.host = aggr.edge = 0;
+		aggr.aggr = (core - (k * k * k / 4 + k * k + 1)) / (k / 2) + 1;
+		aggrhop = locator2Addr(aggr);
+	} else {
+		fprintf(stderr, "no supported getAggrHopOf() on non-host(edge) node %d.\n", locator2Addr(host_loc));
+	}
+
+	return aggrhop;
+}
